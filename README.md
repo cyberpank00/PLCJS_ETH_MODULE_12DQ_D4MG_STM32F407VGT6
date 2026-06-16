@@ -1,26 +1,22 @@
-# PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6
+# PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6
 
-Основная прошивка Ethernet-модуля PLCJS с 12 дискретными входами на базе `STM32F407VGT6`.
+Прошивка Ethernet-модуля PLCJS с 12 дискретными выходами на базе `STM32F407VGT6`.
 
-Прошивка читает 12 active-low входов, фильтрует дребезг, публикует состояния по `Modbus TCP`, хранит настройки во внутренней Flash, управляет индикатором `STAT_LED`, поддерживает factory reset и программный переход в Ethernet bootloader для OTA-обновления.
+Прошивка управляет 12 push-pull выходами (прямая полярность: логическая `1` = высокий уровень на выводе), принимает команды по `Modbus TCP`, индивидуально для каждого выхода отрабатывает потерю связи (режимы HOLD / ZERO / SAFE с настраиваемым таймаутом), хранит настройки во внутренней Flash, управляет индикатором `STAT_LED`, поддерживает factory reset и программный переход в Ethernet bootloader для OTA-обновления.
+
+Прошивка получена портированием базового варианта 12DI (12 дискретных входов). Распиновка и сетевой/служебный функционал унаследованы без изменений; драйвер входов заменён на драйвер выходов, переработана карта Modbus-регистров.
 
 ## Текущий статус
 
-Прошивка интегрирована с отдельным bootloader-проектом и протестирована на реальном модуле.
+Проверено на текущем этапе:
 
-Проверено:
+- сборка `CMake + Ninja` (`arm-none-eabi-gcc`, линковка без ошибок и предупреждений)
 
-- сборка `CMake + Ninja`
-- запуск приложения из bootloader
-- `ping` и `Modbus TCP` на рабочем приложении
-- сохранение настроек во Flash и применение после reboot
-- переключение `DHCP <-> static IP`
-- переключение `TCP_PORT 502 <-> 1502`
-- команды `reboot`, `factory reset`, `enter bootloader`
-- все входы `DI1..DI12`
-- LED-паттерны `idle`, `polling`, `no link`, `factory reset`
-- негативные Modbus-сценарии
-- длительный polling / reconnect / ping soak
+Не проверялось (требуется реальное железо 12DQ и Windows-тулчейн `starm-clang`):
+
+- управление выходами и поведение при потере связи на модуле
+- интеграция с bootloader / OTA для нового `product_id`
+- сетевые и служебные сценарии на железе (унаследованы от 12DI)
 
 ## Аппаратная платформа
 
@@ -28,7 +24,7 @@
 |---|---|
 | MCU | `STM32F407VGT6`, Cortex-M4F |
 | Ethernet | `KSZ8863` Ethernet switch/PHY, RMII |
-| Дискретные входы | 12 входов, active-low, внутренние pull-up MCU |
+| Дискретные выходы | 12 выходов, push-pull, прямая полярность (active-high) |
 | Factory reset | кнопка `FACT_RES`, active-low |
 | Индикация | `STAT_LED`, active-high |
 | Watchdog | `IWDG`, обновляется из основного цикла приложения |
@@ -56,7 +52,7 @@ RAM:
 
 Требуется STM32CubeCLT с `starm-clang`, `cmake`, `ninja` и `python3`.
 
-Стандартная сборка для варианта 12-DI/D4MG (`PRODUCT_ID=0x12D1D4A0`, `HW_REVISION=1`):
+Стандартная сборка для варианта 12-DQ/D4MG (`PRODUCT_ID=0x12D0D4A0`, `HW_REVISION=1`):
 
 ```powershell
 cmake -S . -B build/Debug -G Ninja `
@@ -67,9 +63,9 @@ cmake --build build/Debug
 
 Основные результаты сборки:
 
-- `build/Debug/PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6.elf`
-- `build/Debug/PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6.hex`
-- `build/Debug/PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6.bin`
+- `build/Debug/PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6.elf`
+- `build/Debug/PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6.hex`
+- `build/Debug/PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6.bin`
 - `build/Debug/app.bin` — OTA image для bootloader, с встроенным `fw_header_t`
 
 Post-build шаг автоматически запускает `tools/gen_app_bin.py`, который:
@@ -92,22 +88,22 @@ Post-build шаг автоматически запускает `tools/gen_app_b
 
 | Параметр CMake | Значение по умолчанию | Описание |
 |---|---|---|
-| `-DPRODUCT_ID=0x...` | `0x12D1D4A0` | Идентификатор варианта модуля |
+| `-DPRODUCT_ID=0x...` | `0x12D0D4A0` | Идентификатор варианта модуля |
 | `-DHW_REVISION=N` | `1` | Ревизия платы |
 | `-DFW_VERSION=0xMMmmpp` | `0x00010000` | Версия прошивки (major/minor/patch) |
 
 Примеры для разных вариантов:
 
 ```powershell
-# 12 дискретных входов / 4 выхода — вариант по умолчанию
+# 12 дискретных выходов — вариант по умолчанию (эта прошивка)
+cmake -S . -B build/12dq -G Ninja `
+  -DCMAKE_TOOLCHAIN_FILE=cmake/starm-clang.cmake `
+  -DPRODUCT_ID=0x12D0D4A0 -DHW_REVISION=1 -DFW_VERSION=0x00010000
+
+# 12 дискретных входов
 cmake -S . -B build/12di -G Ninja `
   -DCMAKE_TOOLCHAIN_FILE=cmake/starm-clang.cmake `
-  -DPRODUCT_ID=0x12D1D4A0 -DHW_REVISION=1 -DFW_VERSION=0x00010000
-
-# 12 дискретных выходов
-cmake -S . -B build/12do -G Ninja `
-  -DCMAKE_TOOLCHAIN_FILE=cmake/starm-clang.cmake `
-  -DPRODUCT_ID=0x12D00000 -DHW_REVISION=1
+  -DPRODUCT_ID=0x12D1D4A0 -DHW_REVISION=1
 
 # 4 входа RTD
 cmake -S . -B build/4rtd -G Ninja `
@@ -131,7 +127,7 @@ cmake -S . -B build/8ao -G Ninja `
 ### Как это работает
 
 ```
-Сборка → fw_header.c компилируется с -DFW_PRODUCT_ID=0x12D1D4A0
+Сборка → fw_header.c компилируется с -DFW_PRODUCT_ID=0x12D0D4A0
                                        -DFW_HW_REVISION=1
                                        -DFW_VERSION_VALUE=0x00010000
        → линкер помещает g_fw_header в секцию .fw_header по смещению 0x200
@@ -148,7 +144,7 @@ OTA-обновление → бутлоадер читает product_id/hw_revis
 Через ST-Link:
 
 ```powershell
-STM32_Programmer_CLI -c port=SWD -w build/Debug/PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6.elf -v -rst
+STM32_Programmer_CLI -c port=SWD -w build/Debug/PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6.elf -v -rst
 ```
 
 Через bootloader OTA используется `app.bin` из `build/Debug` и клиент `tools/fw_update.py` из bootloader-репозитория.
@@ -176,32 +172,39 @@ STM32_Programmer_CLI -c port=SWD -w build/Debug/PLCJS_ETH_MODULE_12DI_D4MG_STM32
 - изменения IP/port/DHCP вступают в силу после `TRIG_SAVE` и `TRIG_REBOOT`
 - static IP mode был проверен на `192.168.142.147`
 
-## Дискретные входы
+## Дискретные выходы
 
-Входы active-low: замыкание входа на землю публикуется как логическая `1`.
+Выходы push-pull, прямая полярность: логическая `1` = высокий уровень на выводе. Полярность инвертируется одним макросом `DQ_ACTIVE_HIGH` в `Application/dq/dq_module.h`.
 
 | Modbus index | Silkscreen | MCU pin | Mask bit |
 |---:|---|---|---:|
-| 0 | DI1 | PB3 | `0x001` |
-| 1 | DI2 | PD7 | `0x002` |
-| 2 | DI3 | PD6 | `0x004` |
-| 3 | DI4 | PD5 | `0x008` |
-| 4 | DI5 | PD4 | `0x010` |
-| 5 | DI6 | PD3 | `0x020` |
-| 6 | DI7 | PD2 | `0x040` |
-| 7 | DI8 | PD1 | `0x080` |
-| 8 | DI9 | PD0 | `0x100` |
-| 9 | DI10 | PC12 | `0x200` |
-| 10 | DI11 | PC11 | `0x400` |
-| 11 | DI12 | PC10 | `0x800` |
+| 0 | DQ1 | PB3 | `0x001` |
+| 1 | DQ2 | PD7 | `0x002` |
+| 2 | DQ3 | PD6 | `0x004` |
+| 3 | DQ4 | PD5 | `0x008` |
+| 4 | DQ5 | PD4 | `0x010` |
+| 5 | DQ6 | PD3 | `0x020` |
+| 6 | DQ7 | PD2 | `0x040` |
+| 7 | DQ8 | PD1 | `0x080` |
+| 8 | DQ9 | PD0 | `0x100` |
+| 9 | DQ10 | PC12 | `0x200` |
+| 10 | DQ11 | PC11 | `0x400` |
+| 11 | DQ12 | PC10 | `0x800` |
 
-Фильтр входов:
+### Режимы при потере связи (индивидуально на каждый выход)
 
-- период опроса: `1 ms`
-- дефолт: `50 ms`
-- диапазон: `10..1000 ms`
-- настройка применяется сразу после записи `HR100`
-- сохранение в Flash требует `TRIG_SAVE`
+Потеря связи определяется по отсутствию Modbus-запросов дольше заданного таймаута.
+
+| Код | Режим | Поведение после таймаута |
+|---:|---|---|
+| `0` | `HOLD` | удерживать последнее состояние (дефолт) |
+| `1` | `ZERO` | сбросить выход в `0` |
+| `2` | `SAFE` | установить настроенное безопасное значение |
+
+- таймаут задаётся на каждый выход в единицах ×100 мс (`0` = сработать сразу)
+- после срабатывания выход защёлкивается в safe/0 и остаётся в этом состоянии до следующей явной команды на этот выход (автовосстановления нет)
+- режим `HOLD` никогда не меняет выход автоматически
+- значения выходов и вся конфигурация сохраняются по `TRIG_SAVE` и восстанавливаются при включении
 
 ## STAT_LED
 
@@ -222,32 +225,34 @@ STM32_Programmer_CLI -c port=SWD -w build/Debug/PLCJS_ETH_MODULE_12DI_D4MG_STM32
 | No link | 3 короткие вспышки каждые 3 секунды |
 | Factory reset | непрерывное мигание, дефолт `300 ms ON / 100 ms OFF` |
 
-Паттерны `idle -> polling -> idle` и `no link` были подтверждены визуально на модуле.
+Логика индикации унаследована от 12DI без изменений.
 
 ## Modbus TCP карта
 
-### Discrete Inputs, FC02
-
-| Address | Описание |
-|---:|---|
-| `0..11` | DI1..DI12, отфильтрованное состояние |
+Блок управления/конфигурации выходов занимает holding-регистры `50..98`, чтобы не пересекаться с адресами других типов модулей (например, 12DI). Адреса «порегистрово» — канал `i` (0..11) = базовый адрес + `i`, что соответствует DQ`(i+1)`.
 
 ### Input Registers, FC04
 
 | Address | Описание |
 |---:|---|
-| `0..11` | DI1..DI12, значения `0/1` |
+| `0..11` | DQ1..DQ12, текущее состояние выхода `0/1` (эхо, read-only) |
 | `120` | firmware version major |
 | `121` | firmware version minor |
 | `122` | uptime seconds, low word |
 | `123` | uptime seconds, high word |
-| `124` | 12-bit DI mask |
+| `124` | 12-bit маска состояния выходов |
+| `125` | module ID = `0x12D0` (12x DO) |
 
 ### Holding Registers, FC03 / FC06 / FC16
 
 | Address | Имя | Диапазон / значение | Применение |
 |---:|---|---|---|
-| `100` | `DI_FILTER_MS` | `10..1000`, default `50` | сразу |
+| `50` | `DQ_GROUP` | 12-битная маска (бит `i` → DQ`(i+1)`) | сразу |
+| `51..62` | `DQ_VALUE[1..12]` | `0/1` | сразу |
+| `63..74` | `DQ_MODE[1..12]` | `0`=HOLD / `1`=ZERO / `2`=SAFE, default `0` | сразу |
+| `75..86` | `DQ_SAFE[1..12]` | `0/1`, default `0` | сразу |
+| `87..98` | `DQ_TIMEOUT[1..12]` | ×100 мс, default `0` (сразу) | сразу |
+| `99` | резерв | — | — |
 | `101` | `LED_MODE` | `0..2`, default `2` | сразу |
 | `102` | `SLAVE_ID` | `1..247`, default `1` | для новых Modbus-сессий |
 | `103` | `TCP_PORT` | `1..65535`, default `502` | после save + reboot |
@@ -264,16 +269,32 @@ STM32_Programmer_CLI -c port=SWD -w build/Debug/PLCJS_ETH_MODULE_12DI_D4MG_STM32
 
 ## Примеры PyModbus
 
-Чтение версии и DI mask:
+Чтение версии, маски выходов и module ID:
 
 ```python
 from pymodbus.client import ModbusTcpClient
 
 client = ModbusTcpClient("192.168.142.98", port=502, timeout=5)
 client.connect()
-rr = client.read_input_registers(address=120, count=5, device_id=1)
-print(rr.registers)
+rr = client.read_input_registers(address=120, count=6, device_id=1)
+print(rr.registers)  # [fw_major, fw_minor, uptime_lo, uptime_hi, dq_mask, 0x12D0]
 client.close()
+```
+
+Включить DQ1 и DQ3 (порегистрово) и всё групповой маской:
+
+```python
+client.write_register(address=51, value=1, device_id=1)        # DQ1 = 1
+client.write_register(address=53, value=1, device_id=1)        # DQ3 = 1
+client.write_register(address=50, value=0x005, device_id=1)    # группа: DQ1+DQ3
+```
+
+Настроить DQ2: при потере связи через 1 с перейти в SAFE=1:
+
+```python
+client.write_register(address=64, value=2,  device_id=1)   # DQ2 MODE = SAFE
+client.write_register(address=76, value=1,  device_id=1)   # DQ2 SAFE value = 1
+client.write_register(address=88, value=10, device_id=1)   # DQ2 timeout = 10 x100ms = 1 s
 ```
 
 Сохранить настройки:
@@ -306,9 +327,10 @@ client.write_register(address=119, value=0xDEAD, device_id=1)
 
 Структура защищена:
 
-- magic: `0x12D14A57`
+- magic: `0x12D04A57` (отличается от 12DI — настройки 12DI не подхватятся)
 - version: `1`
 - CRC32 по всем полям до `crc32`
+- включает повыходную конфигурацию: маску состояния, safe-маску, режимы и таймауты
 
 Если структура во Flash невалидна, приложение загружает дефолты. `TRIG_SAVE` стирает sector 10 и записывает актуальную структуру настроек.
 
@@ -333,25 +355,15 @@ client.write_register(address=119, value=0xDEAD, device_id=1)
 - при переходе в bootloader приложение уходит с app IP, bootloader поднимается на bootloader IP
 - если bootloader остался после неудачной OTA-сессии, используйте `ABORT_UPDATE`, затем `REBOOT` на стороне bootloader
 
-## Проверенный тестовый набор
+## Статус проверки
 
 | Тест | Результат |
 |---|---|
-| Build app | OK |
-| Ping `.98` | OK |
-| Modbus read/write | OK |
-| Reconnect 20/20 | OK |
-| Polling 100/100 | OK |
-| Soak ping 120/120 | OK, 0% loss |
-| Soak Modbus 240/240 | OK |
-| `DI1..DI12` | OK |
-| `TCP_PORT 502 <-> 1502` | OK |
-| `DHCP <-> static .147` | OK |
-| `reboot` | OK |
-| `factory reset` | OK |
-| `app -> bootloader -> app` | OK |
-| Negative Modbus values | OK |
-| LED idle/polling/no-link | OK |
+| Build (`arm-none-eabi-gcc`, CMake + Ninja) | OK, без предупреждений |
+| Управление DQ1..DQ12 на железе | не проверялось |
+| Режимы HOLD/ZERO/SAFE и таймауты на железе | не проверялось |
+| OTA / bootloader для нового `product_id` | не проверялось |
+| Сетевые/служебные сценарии (унаследованы от 12DI) | не проверялось на 12DQ |
 
 ## Известные ограничения
 

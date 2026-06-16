@@ -15,13 +15,17 @@ extern "C" {
 #endif
 
 /* Magic and version --------------------------------------------------------- */
-#define SETTINGS_MAGIC          0x12D14A57u
+#define SETTINGS_MAGIC          0x12D04A57u
 #define SETTINGS_VERSION        1u
 
+/* Number of discrete outputs persisted in the settings image. */
+#define SETTINGS_DQ_COUNT           12u
+
 /* Defaults ------------------------------------------------------------------ */
-#define SETTINGS_DEF_FILTER_MS      50u
-#define SETTINGS_FILTER_MS_MIN      10u
-#define SETTINGS_FILTER_MS_MAX      1000u
+/* Discrete-output power-on defaults: all outputs off, HOLD on comms loss,
+ * safe value 0, timeout 0 (handled by the memset in reset_to_defaults). */
+#define SETTINGS_DEF_DQ_VALUE_MASK  0u
+#define SETTINGS_DEF_DQ_SAFE_MASK   0u
 
 #define SETTINGS_DEF_LED_MODE       2u    /* STATE_MACHINE */
 
@@ -62,7 +66,6 @@ typedef struct {
     uint16_t version;
     uint16_t reserved0;
 
-    uint16_t di_filter_ms;          /* anti-bounce filter, ms (10..1000)     */
     uint16_t led_mode;              /* led_mode_t                             */
 
     uint16_t modbus_tcp_port;       /* default 502                            */
@@ -73,7 +76,13 @@ typedef struct {
     uint8_t  netmask[4];
     uint8_t  gateway[4];
 
-    uint8_t  reserved1[16];
+    /* Discrete-output configuration (one entry per channel). */
+    uint16_t dq_value_mask;                 /* power-on output state          */
+    uint16_t dq_safe_mask;                  /* per-output safe value (SAFE)   */
+    uint8_t  dq_mode[SETTINGS_DQ_COUNT];    /* dq_loss_mode_t per output      */
+    uint16_t dq_timeout[SETTINGS_DQ_COUNT]; /* comms-loss timeout, x100 ms    */
+
+    uint8_t  reserved1[8];
 
     uint32_t crc32;                 /* CRC32 over all preceding bytes        */
 } settings_t;

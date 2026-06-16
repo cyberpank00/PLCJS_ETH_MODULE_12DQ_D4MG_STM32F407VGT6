@@ -60,8 +60,12 @@ void settings_reset_to_defaults(void)
     s_settings.magic            = SETTINGS_MAGIC;
     s_settings.version          = SETTINGS_VERSION;
 
-    s_settings.di_filter_ms     = SETTINGS_DEF_FILTER_MS;
     s_settings.led_mode         = SETTINGS_DEF_LED_MODE;
+
+    /* Discrete outputs: all off, HOLD on comms loss, safe value 0, timeout 0.
+     * dq_mode[]/dq_timeout[] are already zeroed by the memset above. */
+    s_settings.dq_value_mask    = SETTINGS_DEF_DQ_VALUE_MASK;
+    s_settings.dq_safe_mask     = SETTINGS_DEF_DQ_SAFE_MASK;
 
     s_settings.modbus_tcp_port  = SETTINGS_DEF_TCP_PORT;
     s_settings.modbus_slave_id  = SETTINGS_DEF_SLAVE_ID;

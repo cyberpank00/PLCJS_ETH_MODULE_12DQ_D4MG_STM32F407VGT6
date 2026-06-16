@@ -53,7 +53,7 @@ typedef struct __attribute__((packed)) {
 
 /* Compile-time defaults — overridden via CMake -D flags. */
 #ifndef FW_PRODUCT_ID
-#define FW_PRODUCT_ID    0x12D1D4A0u
+#define FW_PRODUCT_ID    0x12D0D4A0u
 #endif
 #ifndef FW_HW_REVISION
 #define FW_HW_REVISION   0x0101u  /* hw:01.01 */
