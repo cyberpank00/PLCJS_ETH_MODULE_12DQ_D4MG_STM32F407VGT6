@@ -20,7 +20,7 @@
 #include "stm32f4xx_hal.h"
 
 #include "button_module.h"
-#include "di_module.h"
+#include "dq_module.h"
 #include "ksz8863.h"
 #include "led_module.h"
 #include "modbus_app.h"
@@ -93,18 +93,6 @@ volatile struct {
 /* ---------------------------------------------------------------------------
  * Sub-tasks
  * ------------------------------------------------------------------------- */
-
-/* DI sampling task: 1 ms period, drives the anti-bounce filter. */
-static void di_task(void* arg)
-{
-    (void)arg;
-    uint32_t tick = osKernelGetTickCount();
-    for (;;) {
-        di_module_tick();
-        tick += 1u;
-        osDelayUntil(tick);
-    }
-}
 
 /* LED state machine: 10 ms tick. */
 static void led_task(void* arg)
@@ -235,8 +223,9 @@ void app_run(void)
         /* Not reached. */
     }
 
-    /* Initialise the remaining hardware drivers. */
-    di_module_init(s->di_filter_ms);
+    /* Initialise the remaining hardware drivers. The output driver applies
+     * the persisted power-on mask so the outputs come up in a known state. */
+    dq_module_init(s->dq_default_mask);
     modbus_app_init();
 
     /* Apply network configuration (static or DHCP). */
@@ -278,15 +267,10 @@ void app_run(void)
         dbg.eth_maccr = ETH->MACCR;
     }
 
-    /* Spawn the DI sampling task. The LED task was started earlier so that
-     * the factory-reset burst is visible during the boot-time button-hold
-     * path (see above). */
-    const osThreadAttr_t di_attr  = {
-        .name = "DI", .stack_size = 384, .priority = osPriorityHigh
-    };
-    osThreadNew(di_task, NULL, &di_attr);
-
-    /* Spawn Modbus TCP server. */
+    /* Spawn Modbus TCP server. Outputs are driven directly from the Modbus
+     * coil callbacks, so no periodic sampling task is required. The LED task
+     * was started earlier so that the factory-reset burst is visible during
+     * the boot-time button-hold path (see above). */
     modbus_tcp_server_start();
 
     /* Housekeeping loop: feeds the watchdog, processes deferred actions and

@@ -15,13 +15,12 @@ extern "C" {
 #endif
 
 /* Magic and version --------------------------------------------------------- */
-#define SETTINGS_MAGIC          0x12D14A57u
+#define SETTINGS_MAGIC          0x12D04A57u
 #define SETTINGS_VERSION        1u
 
 /* Defaults ------------------------------------------------------------------ */
-#define SETTINGS_DEF_FILTER_MS      50u
-#define SETTINGS_FILTER_MS_MIN      10u
-#define SETTINGS_FILTER_MS_MAX      1000u
+/* Power-on output mask: all outputs off by default. */
+#define SETTINGS_DEF_DQ_MASK        0u
 
 #define SETTINGS_DEF_LED_MODE       2u    /* STATE_MACHINE */
 
@@ -62,7 +61,7 @@ typedef struct {
     uint16_t version;
     uint16_t reserved0;
 
-    uint16_t di_filter_ms;          /* anti-bounce filter, ms (10..1000)     */
+    uint16_t dq_default_mask;       /* power-on output mask (bits 0..11)     */
     uint16_t led_mode;              /* led_mode_t                             */
 
     uint16_t modbus_tcp_port;       /* default 502                            */

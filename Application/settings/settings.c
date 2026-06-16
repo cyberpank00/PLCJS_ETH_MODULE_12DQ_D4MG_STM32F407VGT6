@@ -60,7 +60,7 @@ void settings_reset_to_defaults(void)
     s_settings.magic            = SETTINGS_MAGIC;
     s_settings.version          = SETTINGS_VERSION;
 
-    s_settings.di_filter_ms     = SETTINGS_DEF_FILTER_MS;
+    s_settings.dq_default_mask  = SETTINGS_DEF_DQ_MASK;
     s_settings.led_mode         = SETTINGS_DEF_LED_MODE;
 
     s_settings.modbus_tcp_port  = SETTINGS_DEF_TCP_PORT;

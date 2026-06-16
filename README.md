@@ -1,26 +1,23 @@
-# PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6
+# PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6
 
-Основная прошивка Ethernet-модуля PLCJS с 12 дискретными входами на базе `STM32F407VGT6`.
+Основная прошивка Ethernet-модуля PLCJS с 12 дискретными выходами на базе `STM32F407VGT6`.
 
-Прошивка читает 12 active-low входов, фильтрует дребезг, публикует состояния по `Modbus TCP`, хранит настройки во внутренней Flash, управляет индикатором `STAT_LED`, поддерживает factory reset и программный переход в Ethernet bootloader для OTA-обновления.
+Прошивка управляет 12 дискретными выходами по `Modbus TCP` (Modbus coils), хранит настройки
+во внутренней Flash, управляет индикатором `STAT_LED`, поддерживает factory reset и программный
+переход в Ethernet bootloader для OTA-обновления.
+
+## Происхождение
+
+Порт прошивки [`PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6`](https://github.com/cyberpank00/PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6):
+12 дискретных **входов** заменены на 12 дискретных **выходов**. Вся сетевая инфраструктура
+(KSZ8863/RMII, LwIP, Modbus TCP server, настройки во Flash, STAT_LED, FACT_RES, переход в
+bootloader) сохранена без изменений.
 
 ## Текущий статус
 
-Прошивка интегрирована с отдельным bootloader-проектом и протестирована на реальном модуле.
-
-Проверено:
-
-- сборка `CMake + Ninja`
-- запуск приложения из bootloader
-- `ping` и `Modbus TCP` на рабочем приложении
-- сохранение настроек во Flash и применение после reboot
-- переключение `DHCP <-> static IP`
-- переключение `TCP_PORT 502 <-> 1502`
-- команды `reboot`, `factory reset`, `enter bootloader`
-- все входы `DI1..DI12`
-- LED-паттерны `idle`, `polling`, `no link`, `factory reset`
-- негативные Modbus-сценарии
-- длительный polling / reconnect / ping soak
+- сборка `CMake + Ninja` (Linux syntax-check `arm-none-eabi-gcc`, целевая сборка `starm-clang`)
+- **прошивка ещё не валидирована на реальном модуле 12DQ** — требуется проверка распиновки и
+  полярности выходов по схеме платы 12DQ (см. раздел «Дискретные выходы»)
 
 ## Аппаратная платформа
 
@@ -28,7 +25,7 @@
 |---|---|
 | MCU | `STM32F407VGT6`, Cortex-M4F |
 | Ethernet | `KSZ8863` Ethernet switch/PHY, RMII |
-| Дискретные входы | 12 входов, active-low, внутренние pull-up MCU |
+| Дискретные выходы | 12 выходов, push-pull, полярность настраивается (`DQ_ACTIVE_HIGH`) |
 | Factory reset | кнопка `FACT_RES`, active-low |
 | Индикация | `STAT_LED`, active-high |
 | Watchdog | `IWDG`, обновляется из основного цикла приложения |
@@ -65,9 +62,9 @@ cmake --build build/Debug
 
 Основные результаты сборки:
 
-- `build/Debug/PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6.elf`
-- `build/Debug/PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6.hex`
-- `build/Debug/PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6.bin`
+- `build/Debug/PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6.elf`
+- `build/Debug/PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6.hex`
+- `build/Debug/PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6.bin`
 - `build/Debug/app.bin` - OTA image для bootloader
 
 ## Прошивка
@@ -75,7 +72,7 @@ cmake --build build/Debug
 Через ST-Link:
 
 ```powershell
-STM32_Programmer_CLI -c port=SWD -w build/Debug/PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6.elf -v -rst
+STM32_Programmer_CLI -c port=SWD -w build/Debug/PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6.elf -v -rst
 ```
 
 Через bootloader OTA используется `app.bin` из `build/Debug` и клиент `tools/fw_update.py` из bootloader-репозитория.
@@ -95,40 +92,39 @@ STM32_Programmer_CLI -c port=SWD -w build/Debug/PLCJS_ETH_MODULE_12DI_D4MG_STM32
 | Modbus TCP port | `502` |
 | Modbus unit id | `1` |
 
-В тестовой сети DHCP выдавал приложению адрес `192.168.142.98`. Bootloader в протестированной конфигурации доступен на `192.168.142.99`.
-
 Важно:
 
 - `USE_DHCP = 1` означает, что static IP хранится как запасная настройка, но не применяется
 - изменения IP/port/DHCP вступают в силу после `TRIG_SAVE` и `TRIG_REBOOT`
-- static IP mode был проверен на `192.168.142.147`
 
-## Дискретные входы
+## Дискретные выходы
 
-Входы active-low: замыкание входа на землю публикуется как логическая `1`.
+Выходы push-pull. Логическая `1` по умолчанию выставляет высокий уровень на пине MCU
+(`DQ_ACTIVE_HIGH = 1` в `Application/dq/dq_module.h`); инвертировать полярность можно одним
+макросом.
 
-| Modbus index | Silkscreen | MCU pin | Mask bit |
+> Распиновка ниже унаследована от платы 12DI (те же пины переведены в режим выхода).
+> Перед прошивкой на реальный модуль 12DQ сверьте таблицу со схемой платы.
+
+| Modbus coil | Silkscreen | MCU pin | Mask bit |
 |---:|---|---|---:|
-| 0 | DI1 | PB3 | `0x001` |
-| 1 | DI2 | PD7 | `0x002` |
-| 2 | DI3 | PD6 | `0x004` |
-| 3 | DI4 | PD5 | `0x008` |
-| 4 | DI5 | PD4 | `0x010` |
-| 5 | DI6 | PD3 | `0x020` |
-| 6 | DI7 | PD2 | `0x040` |
-| 7 | DI8 | PD1 | `0x080` |
-| 8 | DI9 | PD0 | `0x100` |
-| 9 | DI10 | PC12 | `0x200` |
-| 10 | DI11 | PC11 | `0x400` |
-| 11 | DI12 | PC10 | `0x800` |
+| 0 | DQ1 | PB3 | `0x001` |
+| 1 | DQ2 | PD7 | `0x002` |
+| 2 | DQ3 | PD6 | `0x004` |
+| 3 | DQ4 | PD5 | `0x008` |
+| 4 | DQ5 | PD4 | `0x010` |
+| 5 | DQ6 | PD3 | `0x020` |
+| 6 | DQ7 | PD2 | `0x040` |
+| 7 | DQ8 | PD1 | `0x080` |
+| 8 | DQ9 | PD0 | `0x100` |
+| 9 | DQ10 | PC12 | `0x200` |
+| 10 | DQ11 | PC11 | `0x400` |
+| 11 | DQ12 | PC10 | `0x800` |
 
-Фильтр входов:
+Состояние после включения:
 
-- период опроса: `1 ms`
-- дефолт: `50 ms`
-- диапазон: `10..1000 ms`
-- настройка применяется сразу после записи `HR100`
-- сохранение в Flash требует `TRIG_SAVE`
+- на старте все выходы выставляются в маску `DQ_DEFAULT_MASK` (`HR100`, дефолт `0` — все выключены)
+- значение сохраняется во Flash по `TRIG_SAVE` и применяется при следующем reboot
 
 ## STAT_LED
 
@@ -149,32 +145,30 @@ STM32_Programmer_CLI -c port=SWD -w build/Debug/PLCJS_ETH_MODULE_12DI_D4MG_STM32
 | No link | 3 короткие вспышки каждые 3 секунды |
 | Factory reset | непрерывное мигание, дефолт `300 ms ON / 100 ms OFF` |
 
-Паттерны `idle -> polling -> idle` и `no link` были подтверждены визуально на модуле.
-
 ## Modbus TCP карта
 
-### Discrete Inputs, FC02
+### Coils, FC01 / FC05 / FC15
 
 | Address | Описание |
 |---:|---|
-| `0..11` | DI1..DI12, отфильтрованное состояние |
+| `0..11` | DQ1..DQ12, состояние выхода (чтение/запись) |
 
 ### Input Registers, FC04
 
 | Address | Описание |
 |---:|---|
-| `0..11` | DI1..DI12, значения `0/1` |
+| `0..11` | DQ1..DQ12, значения `0/1` (эхо состояния выходов) |
 | `120` | firmware version major |
 | `121` | firmware version minor |
 | `122` | uptime seconds, low word |
 | `123` | uptime seconds, high word |
-| `124` | 12-bit DI mask |
+| `124` | 12-битная маска выходов |
 
 ### Holding Registers, FC03 / FC06 / FC16
 
 | Address | Имя | Диапазон / значение | Применение |
 |---:|---|---|---|
-| `100` | `DI_FILTER_MS` | `10..1000`, default `50` | сразу |
+| `100` | `DQ_DEFAULT_MASK` | `0..0x0FFF`, default `0` | после save + reboot |
 | `101` | `LED_MODE` | `0..2`, default `2` | сразу |
 | `102` | `SLAVE_ID` | `1..247`, default `1` | для новых Modbus-сессий |
 | `103` | `TCP_PORT` | `1..65535`, default `502` | после save + reboot |
@@ -191,40 +185,45 @@ STM32_Programmer_CLI -c port=SWD -w build/Debug/PLCJS_ETH_MODULE_12DI_D4MG_STM32
 
 ## Примеры PyModbus
 
-Чтение версии и DI mask:
+Включить выход DQ1 (coil 0) и прочитать все 12 выходов:
 
 ```python
 from pymodbus.client import ModbusTcpClient
 
-client = ModbusTcpClient("192.168.142.98", port=502, timeout=5)
+client = ModbusTcpClient("192.168.142.147", port=502, timeout=5)
 client.connect()
-rr = client.read_input_registers(address=120, count=5, device_id=1)
-print(rr.registers)
+client.write_coil(address=0, value=True, device_id=1)            # DQ1 = ON
+rr = client.read_coils(address=0, count=12, device_id=1)
+print(rr.bits)
 client.close()
 ```
 
-Сохранить настройки:
+Записать сразу несколько выходов (DQ1..DQ4 = ON, остальные OFF):
 
 ```python
-client.write_register(address=117, value=0xA5A5, device_id=1)
+client.write_coils(address=0, values=[True, True, True, True] + [False] * 8, device_id=1)
 ```
 
-Перезагрузить приложение:
+Прочитать версию и маску выходов:
 
 ```python
-client.write_register(address=118, value=0xB00B, device_id=1)
+rr = client.read_input_registers(address=120, count=5, device_id=1)
+print(rr.registers)
 ```
 
-Перейти в bootloader:
+Задать маску выходов после reboot и сохранить:
 
 ```python
-client.write_register(address=118, value=0xB007, device_id=1)
+client.write_register(address=100, value=0x00F, device_id=1)     # DQ1..DQ4 по умолчанию ON
+client.write_register(address=117, value=0xA5A5, device_id=1)    # TRIG_SAVE
+client.write_register(address=118, value=0xB00B, device_id=1)    # TRIG_REBOOT
 ```
 
-Factory reset:
+Перейти в bootloader / factory reset:
 
 ```python
-client.write_register(address=119, value=0xDEAD, device_id=1)
+client.write_register(address=118, value=0xB007, device_id=1)    # bootloader
+client.write_register(address=119, value=0xDEAD, device_id=1)    # factory reset
 ```
 
 ## Настройки во Flash
@@ -233,11 +232,11 @@ client.write_register(address=119, value=0xDEAD, device_id=1)
 
 Структура защищена:
 
-- magic: `0x12D14A57`
+- magic: `0x12D04A57`
 - version: `1`
 - CRC32 по всем полям до `crc32`
 
-Если структура во Flash невалидна, приложение загружает дефолты. `TRIG_SAVE` стирает sector 10 и записывает актуальную структуру настроек.
+Если структура во Flash невалидна, приложение загружает дефолты. `TRIG_SAVE` стирает sector 10 и записывает актуальную структуру настроек. Magic отличается от 12DI (`0x12D14A57`), поэтому настройки от прошивки 12DI не подхватываются.
 
 ## Переход в bootloader
 
@@ -253,36 +252,10 @@ client.write_register(address=119, value=0xDEAD, device_id=1)
 3. выполняет `NVIC_SystemReset()`
 4. bootloader считывает magic, очищает его и остается в `BOOT_WAIT_COMMAND`
 
-## Recovery и эксплуатационные заметки
-
-- после `factory reset` настройки возвращаются к дефолтам и устройство перезагружается
-- после смены IP/port/DHCP обязательно делайте `TRIG_SAVE` и `TRIG_REBOOT`
-- при переходе в bootloader приложение уходит с app IP, bootloader поднимается на bootloader IP
-- если bootloader остался после неудачной OTA-сессии, используйте `ABORT_UPDATE`, затем `REBOOT` на стороне bootloader
-
-## Проверенный тестовый набор
-
-| Тест | Результат |
-|---|---|
-| Build app | OK |
-| Ping `.98` | OK |
-| Modbus read/write | OK |
-| Reconnect 20/20 | OK |
-| Polling 100/100 | OK |
-| Soak ping 120/120 | OK, 0% loss |
-| Soak Modbus 240/240 | OK |
-| `DI1..DI12` | OK |
-| `TCP_PORT 502 <-> 1502` | OK |
-| `DHCP <-> static .147` | OK |
-| `reboot` | OK |
-| `factory reset` | OK |
-| `app -> bootloader -> app` | OK |
-| Negative Modbus values | OK |
-| LED idle/polling/no-link | OK |
-
 ## Известные ограничения
 
 - нет аутентификации Modbus TCP команд
 - Modbus server обслуживает одного клиента за раз; дополнительные клиенты ждут освобождения соединения
 - текущий MAC address является locally-administered и должен быть заменен для серийного производства
-- bootloader IP настраивается в отдельном проекте и сейчас статический
+- распиновка и полярность выходов унаследованы от 12DI и должны быть подтверждены по схеме 12DQ
+- прошивка ещё не проверена на реальном железе 12DQ

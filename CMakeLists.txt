@@ -19,7 +19,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Set the project name
-set(CMAKE_PROJECT_NAME PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6)
+set(CMAKE_PROJECT_NAME PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6)
 
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
@@ -46,7 +46,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Application sources
     Application/app/app.c
-    Application/di/di_module.c
+    Application/dq/dq_module.c
     Application/led/led_module.c
     Application/button/button_module.c
     Application/ksz8863/ksz8863.c
@@ -60,7 +60,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     Application/app
-    Application/di
+    Application/dq
     Application/led
     Application/button
     Application/ksz8863

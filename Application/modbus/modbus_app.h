@@ -5,19 +5,19 @@
   *
   *  Map of the device:
   *
-  *    Discrete Inputs (FC02):
-  *      0..11   - DI1..DI12 filtered state (read-only)
+  *    Coils (FC01 read / FC05 write single / FC15 write multiple):
+  *      0..11   - DQ1..DQ12 output state (read/write)
   *
   *    Input Registers (FC04):
-  *      0..11   - DI1..DI12 filtered state, 0 or 1
+  *      0..11   - DQ1..DQ12 output state, 0 or 1 (read-only echo)
   *      120     - firmware version major
   *      121     - firmware version minor
   *      122     - uptime, seconds (low word)
   *      123     - uptime, seconds (high word)
-  *      124     - active poll mask of DI1..DI12 as a 12-bit value
+  *      124     - output state mask of DQ1..DQ12 as a 12-bit value
   *
   *    Holding Registers (FC03/FC06/FC10):
-  *      100     - DI filter time, ms (10..1000), default 50
+  *      100     - power-on default output mask (0..0x0FFF), default 0
   *      101     - LED mode (0 = ALW_OFF, 1 = ALW_ON, 2 = STATE_MACHINE)
   *      102     - Modbus slave id (informational on TCP)
   *      103     - Modbus TCP port
@@ -56,7 +56,7 @@ extern "C" {
 #define BOOT_REQUEST_MAGIC          0xB007CAFEu
 
 /* Holding register addresses, exposed for unit tests / introspection. */
-#define MB_HR_DI_FILTER_MS          100u
+#define MB_HR_DQ_DEFAULT_MASK       100u
 #define MB_HR_LED_MODE              101u
 #define MB_HR_SLAVE_ID              102u
 #define MB_HR_TCP_PORT              103u
@@ -73,9 +73,9 @@ extern "C" {
 #define MB_IR_FW_VER_MINOR          121u
 #define MB_IR_UPTIME_LO             122u
 #define MB_IR_UPTIME_HI             123u
-#define MB_IR_DI_MASK               124u
+#define MB_IR_DQ_MASK               124u
 
-#define MB_DI_COUNT                 12u
+#define MB_DQ_COUNT                 12u
 
 /** Initialise the modbus register adapter. Must be called after settings_init(). */
 void modbus_app_init(void);

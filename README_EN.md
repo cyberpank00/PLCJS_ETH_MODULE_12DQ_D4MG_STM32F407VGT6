@@ -1,26 +1,23 @@
-# PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6
+# PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6
 
-Main firmware for the PLCJS Ethernet 12-DI module based on `STM32F407VGT6`.
+Main firmware for the PLCJS Ethernet 12-DQ module based on `STM32F407VGT6`.
 
-The application reads 12 active-low discrete inputs, applies debounce filtering, exposes state and configuration over `Modbus TCP`, stores settings in internal Flash, drives `STAT_LED`, supports factory reset, and can hand over control to the Ethernet bootloader for OTA updates.
+The application drives 12 discrete outputs over `Modbus TCP` (Modbus coils), stores settings in
+internal Flash, drives `STAT_LED`, supports factory reset, and can hand over control to the
+Ethernet bootloader for OTA updates.
+
+## Origin
+
+A port of [`PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6`](https://github.com/cyberpank00/PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6):
+the 12 discrete **inputs** are replaced with 12 discrete **outputs**. All networking
+infrastructure (KSZ8863/RMII, LwIP, Modbus TCP server, Flash settings, STAT_LED, FACT_RES,
+bootloader hand-over) is kept unchanged.
 
 ## Current status
 
-The application is integrated with the paired bootloader project and tested on real hardware.
-
-Validated scenarios:
-
-- `CMake + Ninja` build
-- application boot from bootloader
-- `ping` and `Modbus TCP` access on the running application
-- Flash settings persistence and reboot application
-- `DHCP <-> static IP` switching
-- `TCP_PORT 502 <-> 1502` switching
-- `reboot`, `factory reset`, `enter bootloader` commands
-- all inputs `DI1..DI12`
-- LED patterns: `idle`, `polling`, `no link`, `factory reset`
-- negative Modbus scenarios
-- polling / reconnect / ping soak tests
+- `CMake + Ninja` build (Linux syntax-check with `arm-none-eabi-gcc`, target build with `starm-clang`)
+- **not yet validated on real 12DQ hardware** — the output pin map and polarity must be confirmed
+  against the 12DQ board schematic (see "Discrete outputs")
 
 ## Hardware platform
 
@@ -28,7 +25,7 @@ Validated scenarios:
 |---|---|
 | MCU | `STM32F407VGT6`, Cortex-M4F |
 | Ethernet | `KSZ8863` Ethernet switch/PHY, RMII |
-| Discrete inputs | 12 inputs, active-low, MCU internal pull-ups |
+| Discrete outputs | 12 outputs, push-pull, configurable polarity (`DQ_ACTIVE_HIGH`) |
 | Factory reset | `FACT_RES` button, active-low |
 | Indication | `STAT_LED`, active-high |
 | Watchdog | `IWDG`, refreshed from the application housekeeping loop |
@@ -65,9 +62,9 @@ cmake --build build/Debug
 
 Main build outputs:
 
-- `build/Debug/PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6.elf`
-- `build/Debug/PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6.hex`
-- `build/Debug/PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6.bin`
+- `build/Debug/PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6.elf`
+- `build/Debug/PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6.hex`
+- `build/Debug/PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6.bin`
 - `build/Debug/app.bin` - OTA image for the bootloader
 
 ## Flashing
@@ -75,7 +72,7 @@ Main build outputs:
 Via ST-Link:
 
 ```powershell
-STM32_Programmer_CLI -c port=SWD -w build/Debug/PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6.elf -v -rst
+STM32_Programmer_CLI -c port=SWD -w build/Debug/PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6.elf -v -rst
 ```
 
 For bootloader OTA, use `build/Debug/app.bin` and `tools/fw_update.py` from the bootloader repository.
@@ -95,40 +92,38 @@ Defaults:
 | Modbus TCP port | `502` |
 | Modbus unit id | `1` |
 
-In the tested network, DHCP assigned `192.168.142.98` to the application. The paired bootloader is available at `192.168.142.99` in the validated setup.
-
 Notes:
 
 - `USE_DHCP = 1` means the static IP is stored but not applied
 - IP/port/DHCP changes take effect after `TRIG_SAVE` and `TRIG_REBOOT`
-- static IP mode was tested with `192.168.142.147`
 
-## Discrete inputs
+## Discrete outputs
 
-Inputs are active-low: shorting an input to GND publishes logical `1`.
+Outputs are push-pull. A logical `1` drives the MCU pin HIGH by default
+(`DQ_ACTIVE_HIGH = 1` in `Application/dq/dq_module.h`); polarity can be inverted with a single macro.
 
-| Modbus index | Silkscreen | MCU pin | Mask bit |
+> The pin map below is inherited from the 12DI board (the same pins switched to output mode).
+> Confirm it against the 12DQ board schematic before flashing real hardware.
+
+| Modbus coil | Silkscreen | MCU pin | Mask bit |
 |---:|---|---|---:|
-| 0 | DI1 | PB3 | `0x001` |
-| 1 | DI2 | PD7 | `0x002` |
-| 2 | DI3 | PD6 | `0x004` |
-| 3 | DI4 | PD5 | `0x008` |
-| 4 | DI5 | PD4 | `0x010` |
-| 5 | DI6 | PD3 | `0x020` |
-| 6 | DI7 | PD2 | `0x040` |
-| 7 | DI8 | PD1 | `0x080` |
-| 8 | DI9 | PD0 | `0x100` |
-| 9 | DI10 | PC12 | `0x200` |
-| 10 | DI11 | PC11 | `0x400` |
-| 11 | DI12 | PC10 | `0x800` |
+| 0 | DQ1 | PB3 | `0x001` |
+| 1 | DQ2 | PD7 | `0x002` |
+| 2 | DQ3 | PD6 | `0x004` |
+| 3 | DQ4 | PD5 | `0x008` |
+| 4 | DQ5 | PD4 | `0x010` |
+| 5 | DQ6 | PD3 | `0x020` |
+| 6 | DQ7 | PD2 | `0x040` |
+| 7 | DQ8 | PD1 | `0x080` |
+| 8 | DQ9 | PD0 | `0x100` |
+| 9 | DQ10 | PC12 | `0x200` |
+| 10 | DQ11 | PC11 | `0x400` |
+| 11 | DQ12 | PC10 | `0x800` |
 
-Input filter:
+Power-on state:
 
-- sampling period: `1 ms`
-- default: `50 ms`
-- range: `10..1000 ms`
-- writing `HR100` applies immediately
-- Flash persistence requires `TRIG_SAVE`
+- on boot all outputs are driven to the `DQ_DEFAULT_MASK` value (`HR100`, default `0` — all off)
+- the value is persisted to Flash with `TRIG_SAVE` and applied on the next reboot
 
 ## STAT_LED
 
@@ -149,34 +144,32 @@ Patterns in state-machine mode:
 | No link | 3 short blinks every 3 seconds |
 | Factory reset | continuous blink, default `300 ms ON / 100 ms OFF` |
 
-The `idle -> polling -> idle` and `no link` patterns were visually verified on the module.
-
 ## Modbus TCP map
 
-### Discrete Inputs, FC02
+### Coils, FC01 / FC05 / FC15
 
 | Address | Description |
 |---:|---|
-| `0..11` | DI1..DI12, filtered state |
+| `0..11` | DQ1..DQ12, output state (read/write) |
 
 ### Input Registers, FC04
 
 | Address | Description |
 |---:|---|
-| `0..11` | DI1..DI12, values `0/1` |
+| `0..11` | DQ1..DQ12, values `0/1` (output-state echo) |
 | `120` | firmware version major |
 | `121` | firmware version minor |
 | `122` | uptime seconds, low word |
 | `123` | uptime seconds, high word |
-| `124` | 12-bit DI mask |
+| `124` | 12-bit output mask |
 
 ### Holding Registers, FC03 / FC06 / FC16
 
-| Address | Name | Range / value | Applied |
+| Address | Name | Range / value | Applies |
 |---:|---|---|---|
-| `100` | `DI_FILTER_MS` | `10..1000`, default `50` | immediately |
+| `100` | `DQ_DEFAULT_MASK` | `0..0x0FFF`, default `0` | after save + reboot |
 | `101` | `LED_MODE` | `0..2`, default `2` | immediately |
-| `102` | `SLAVE_ID` | `1..247`, default `1` | new Modbus sessions |
+| `102` | `SLAVE_ID` | `1..247`, default `1` | for new Modbus sessions |
 | `103` | `TCP_PORT` | `1..65535`, default `502` | after save + reboot |
 | `104..107` | `IP_BASE` | IPv4 octets | after save + reboot |
 | `108..111` | `NETMASK_BASE` | IPv4 octets | after save + reboot |
@@ -191,98 +184,72 @@ Invalid values return Modbus exception `ILLEGAL_DATA_VALUE`. Invalid addresses r
 
 ## PyModbus examples
 
-Read firmware version and DI mask:
+Turn DQ1 (coil 0) on and read back all 12 outputs:
 
 ```python
 from pymodbus.client import ModbusTcpClient
 
-client = ModbusTcpClient("192.168.142.98", port=502, timeout=5)
+client = ModbusTcpClient("192.168.142.147", port=502, timeout=5)
 client.connect()
-rr = client.read_input_registers(address=120, count=5, device_id=1)
-print(rr.registers)
+client.write_coil(address=0, value=True, device_id=1)            # DQ1 = ON
+rr = client.read_coils(address=0, count=12, device_id=1)
+print(rr.bits)
 client.close()
 ```
 
-Save settings:
+Write several outputs at once (DQ1..DQ4 = ON, the rest OFF):
 
 ```python
-client.write_register(address=117, value=0xA5A5, device_id=1)
+client.write_coils(address=0, values=[True, True, True, True] + [False] * 8, device_id=1)
 ```
 
-Reboot application:
+Set the power-on output mask and persist it:
 
 ```python
-client.write_register(address=118, value=0xB00B, device_id=1)
+client.write_register(address=100, value=0x00F, device_id=1)     # DQ1..DQ4 default ON
+client.write_register(address=117, value=0xA5A5, device_id=1)    # TRIG_SAVE
+client.write_register(address=118, value=0xB00B, device_id=1)    # TRIG_REBOOT
 ```
 
-Enter bootloader:
+Enter bootloader / factory reset:
 
 ```python
-client.write_register(address=118, value=0xB007, device_id=1)
-```
-
-Factory reset:
-
-```python
-client.write_register(address=119, value=0xDEAD, device_id=1)
+client.write_register(address=118, value=0xB007, device_id=1)    # bootloader
+client.write_register(address=119, value=0xDEAD, device_id=1)    # factory reset
 ```
 
 ## Flash settings
 
 Settings are stored in sector 10 at `0x080C0000`.
 
-The settings image is protected by:
+The structure is protected by:
 
-- magic: `0x12D14A57`
+- magic: `0x12D04A57`
 - version: `1`
-- CRC32 over every field before `crc32`
+- CRC32 over all fields preceding `crc32`
 
-If the stored image is invalid, defaults are loaded. `TRIG_SAVE` erases sector 10 and writes the current settings structure.
+If the Flash structure is invalid, the application loads defaults. `TRIG_SAVE` erases sector 10
+and writes the current settings structure. The magic differs from 12DI (`0x12D14A57`), so 12DI
+settings are not picked up by this firmware.
 
-## Bootloader handoff
+## Bootloader hand-over
 
 The application and bootloader share a no-init RAM flag:
 
 - address: `0x2001FFF0`
 - magic: `0xB007CAFE`
 
-When `0xB007` is written to `HR118`, the application:
+Writing `0xB007` to `HR118` makes the application:
 
-1. writes the magic value to the shared RAM cell
-2. waits briefly while refreshing IWDG
-3. calls `NVIC_SystemReset()`
-4. the bootloader consumes the magic, clears it, and stays in `BOOT_WAIT_COMMAND`
-
-## Recovery and operation notes
-
-- after `factory reset`, defaults are saved and the device reboots
-- after IP/port/DHCP changes, always use `TRIG_SAVE` and `TRIG_REBOOT`
-- entering the bootloader moves the device from app IP to bootloader IP
-- if the bootloader remains active after an interrupted OTA session, use `ABORT_UPDATE` and then `REBOOT` on the bootloader side
-
-## Validated test set
-
-| Test | Result |
-|---|---|
-| Build app | OK |
-| Ping `.98` | OK |
-| Modbus read/write | OK |
-| Reconnect 20/20 | OK |
-| Polling 100/100 | OK |
-| Soak ping 120/120 | OK, 0% loss |
-| Soak Modbus 240/240 | OK |
-| `DI1..DI12` | OK |
-| `TCP_PORT 502 <-> 1502` | OK |
-| `DHCP <-> static .147` | OK |
-| `reboot` | OK |
-| `factory reset` | OK |
-| `app -> bootloader -> app` | OK |
-| Negative Modbus values | OK |
-| LED idle/polling/no-link | OK |
+1. write the magic into the shared RAM cell
+2. wait a short moment while refreshing the IWDG
+3. call `NVIC_SystemReset()`
+4. the bootloader reads the magic, clears it, and stays in `BOOT_WAIT_COMMAND`
 
 ## Known limitations
 
-- no authentication for Modbus TCP commands
-- the Modbus server serves one client at a time; additional clients wait until the connection is released
-- the current MAC address is locally-administered and should be replaced for production
-- bootloader IP is configured in the separate bootloader project and is static in the current validated setup
+- no authentication on Modbus TCP commands
+- the Modbus server serves one client at a time; additional clients wait for the connection to free up
+- the current MAC address is locally-administered and must be replaced for serial production
+- output pin map and polarity are inherited from 12DI and must be confirmed against the 12DQ schematic
+- the firmware has not yet been verified on real 12DQ hardware

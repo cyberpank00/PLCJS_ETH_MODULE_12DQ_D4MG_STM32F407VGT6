@@ -57,10 +57,23 @@ void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(STAT_LED_GPIO_Port, STAT_LED_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : ETHINT_Pin DI0_Pin */
-  GPIO_InitStruct.Pin = ETHINT_Pin|DI0_Pin;
+  /*Configure GPIO pins Output Level : DQ outputs default low */
+  HAL_GPIO_WritePin(GPIOC, DQ11_Pin|DQ10_Pin|DQ9_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, DQ8_Pin|DQ7_Pin|DQ6_Pin|DQ5_Pin
+                          |DQ4_Pin|DQ3_Pin|DQ2_Pin|DQ1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(DQ0_GPIO_Port, DQ0_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : ETHINT_Pin */
+  GPIO_InitStruct.Pin = ETHINT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : DQ0_Pin */
+  GPIO_InitStruct.Pin = DQ0_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : ETHRST_Pin */
@@ -83,18 +96,20 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(FACT_RES_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : DI11_Pin DI10_Pin DI9_Pin */
-  GPIO_InitStruct.Pin = DI11_Pin|DI10_Pin|DI9_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  /*Configure GPIO pins : DQ11_Pin DQ10_Pin DQ9_Pin */
+  GPIO_InitStruct.Pin = DQ11_Pin|DQ10_Pin|DQ9_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : DI8_Pin DI7_Pin DI6_Pin DI5_Pin
-                           DI4_Pin DI3_Pin DI2_Pin DI1_Pin */
-  GPIO_InitStruct.Pin = DI8_Pin|DI7_Pin|DI6_Pin|DI5_Pin
-                          |DI4_Pin|DI3_Pin|DI2_Pin|DI1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  /*Configure GPIO pins : DQ8_Pin DQ7_Pin DQ6_Pin DQ5_Pin
+                           DQ4_Pin DQ3_Pin DQ2_Pin DQ1_Pin */
+  GPIO_InitStruct.Pin = DQ8_Pin|DQ7_Pin|DQ6_Pin|DQ5_Pin
+                          |DQ4_Pin|DQ3_Pin|DQ2_Pin|DQ1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
 }
