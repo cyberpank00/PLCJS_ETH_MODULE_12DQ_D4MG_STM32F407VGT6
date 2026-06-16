@@ -12,7 +12,7 @@
 #include "cmsis_os.h"
 #include "stm32f4xx_hal.h"
 
-#include "di_module.h"
+#include "dq_module.h"
 #include "led_module.h"
 #include "settings.h"
 
@@ -86,15 +86,53 @@ static nmbs_error apply_holding_write(uint16_t address, uint16_t value)
 {
     settings_t* s = settings_get();
 
-    switch (address) {
-    case MB_HR_DI_FILTER_MS:
-        if (value < DI_FILTER_MS_MIN || value > DI_FILTER_MS_MAX) {
+    /* --- Discrete-output control / configuration block (50..98) --- */
+    if (address == MB_HR_DQ_GROUP) {
+        if (value > DQ_MASK_ALL) {
             return NMBS_EXCEPTION_ILLEGAL_DATA_VALUE;
         }
-        s->di_filter_ms = value;
-        di_module_set_filter_ms(value);
-        break;
+        dq_module_set_mask(value);
+        s->dq_value_mask = dq_module_get_mask();
+        return NMBS_ERROR_NONE;
+    }
+    if (address >= MB_HR_DQ_VALUE_BASE && address < MB_HR_DQ_VALUE_BASE + MB_DQ_COUNT) {
+        if (value > 1u) {
+            return NMBS_EXCEPTION_ILLEGAL_DATA_VALUE;
+        }
+        dq_module_set_output((uint8_t)(address - MB_HR_DQ_VALUE_BASE), value != 0u);
+        s->dq_value_mask = dq_module_get_mask();
+        return NMBS_ERROR_NONE;
+    }
+    if (address >= MB_HR_DQ_MODE_BASE && address < MB_HR_DQ_MODE_BASE + MB_DQ_COUNT) {
+        if (value > DQ_LOSS_MODE_MAX) {
+            return NMBS_EXCEPTION_ILLEGAL_DATA_VALUE;
+        }
+        const uint8_t idx = (uint8_t)(address - MB_HR_DQ_MODE_BASE);
+        dq_module_set_mode(idx, (uint8_t)value);
+        s->dq_mode[idx] = (uint8_t)value;
+        return NMBS_ERROR_NONE;
+    }
+    if (address >= MB_HR_DQ_SAFE_BASE && address < MB_HR_DQ_SAFE_BASE + MB_DQ_COUNT) {
+        if (value > 1u) {
+            return NMBS_EXCEPTION_ILLEGAL_DATA_VALUE;
+        }
+        const uint8_t idx = (uint8_t)(address - MB_HR_DQ_SAFE_BASE);
+        dq_module_set_safe_value(idx, value != 0u);
+        if (value != 0u) {
+            s->dq_safe_mask |= (uint16_t)(1u << idx);
+        } else {
+            s->dq_safe_mask &= (uint16_t)~(1u << idx);
+        }
+        return NMBS_ERROR_NONE;
+    }
+    if (address >= MB_HR_DQ_TIMEOUT_BASE && address < MB_HR_DQ_TIMEOUT_BASE + MB_DQ_COUNT) {
+        const uint8_t idx = (uint8_t)(address - MB_HR_DQ_TIMEOUT_BASE);
+        dq_module_set_timeout(idx, value);
+        s->dq_timeout[idx] = value;
+        return NMBS_ERROR_NONE;
+    }
 
+    switch (address) {
     case MB_HR_LED_MODE:
         if (value > (uint16_t)LED_MODE_STATE_MACHINE) {
             return NMBS_EXCEPTION_ILLEGAL_DATA_VALUE;
@@ -185,8 +223,24 @@ static uint16_t read_holding(uint16_t address)
 {
     const settings_t* s = settings_get();
 
+    /* --- Discrete-output control / configuration block (50..98) --- */
+    if (address == MB_HR_DQ_GROUP) {
+        return dq_module_get_mask();
+    }
+    if (address >= MB_HR_DQ_VALUE_BASE && address < MB_HR_DQ_VALUE_BASE + MB_DQ_COUNT) {
+        return dq_module_get_output((uint8_t)(address - MB_HR_DQ_VALUE_BASE)) ? 1u : 0u;
+    }
+    if (address >= MB_HR_DQ_MODE_BASE && address < MB_HR_DQ_MODE_BASE + MB_DQ_COUNT) {
+        return dq_module_get_mode((uint8_t)(address - MB_HR_DQ_MODE_BASE));
+    }
+    if (address >= MB_HR_DQ_SAFE_BASE && address < MB_HR_DQ_SAFE_BASE + MB_DQ_COUNT) {
+        return dq_module_get_safe_value((uint8_t)(address - MB_HR_DQ_SAFE_BASE)) ? 1u : 0u;
+    }
+    if (address >= MB_HR_DQ_TIMEOUT_BASE && address < MB_HR_DQ_TIMEOUT_BASE + MB_DQ_COUNT) {
+        return dq_module_get_timeout((uint8_t)(address - MB_HR_DQ_TIMEOUT_BASE));
+    }
+
     switch (address) {
-    case MB_HR_DI_FILTER_MS:    return s->di_filter_ms;
     case MB_HR_LED_MODE:        return s->led_mode;
     case MB_HR_SLAVE_ID:        return s->modbus_slave_id;
     case MB_HR_TCP_PORT:        return s->modbus_tcp_port;
@@ -220,7 +274,12 @@ static uint16_t read_holding(uint16_t address)
 
 static bool holding_address_valid(uint16_t address)
 {
-    if (address >= MB_HR_DI_FILTER_MS && address <= MB_HR_USE_DHCP) {
+    /* DQ control / configuration block 50..98. */
+    if (address >= MB_HR_DQ_GROUP &&
+        address < MB_HR_DQ_TIMEOUT_BASE + MB_DQ_COUNT) {
+        return true;
+    }
+    if (address >= MB_HR_LED_MODE && address <= MB_HR_USE_DHCP) {
         return true;
     }
     if (address == MB_HR_TRIG_SAVE ||
@@ -233,16 +292,16 @@ static bool holding_address_valid(uint16_t address)
 
 static uint16_t read_input(uint16_t address)
 {
-    if (address < MB_DI_COUNT) {
-        return di_module_get_input((uint8_t)address) ? 1u : 0u;
+    if (address < MB_DQ_COUNT) {
+        return dq_module_get_output((uint8_t)address) ? 1u : 0u;
     }
     switch (address) {
     case MB_IR_FW_VER_MAJOR:    return FW_VER_MAJOR;
     case MB_IR_FW_VER_MINOR:    return FW_VER_MINOR;
     case MB_IR_UPTIME_LO:       return (uint16_t)((HAL_GetTick() / 1000u) & 0xFFFFu);
     case MB_IR_UPTIME_HI:       return (uint16_t)(((HAL_GetTick() / 1000u) >> 16u) & 0xFFFFu);
-    case MB_IR_DI_MASK:         return di_module_get_mask();
-    case MB_IR_MODULE_ID:       return MODULE_ID_12DI;
+    case MB_IR_DQ_MASK:         return dq_module_get_mask();
+    case MB_IR_MODULE_ID:       return MODULE_ID_12D0;
     default:                    return 0u;
     }
 }
@@ -250,27 +309,13 @@ static uint16_t read_input(uint16_t address)
 /* ---------------------------------------------------------------------------
  * nanoMODBUS callbacks
  * ------------------------------------------------------------------------- */
-static nmbs_error cb_read_discrete_inputs(uint16_t address, uint16_t quantity,
-                                          nmbs_bitfield inputs_out)
-{
-    if ((uint32_t)address + quantity > MB_DI_COUNT) {
-        return NMBS_EXCEPTION_ILLEGAL_DATA_ADDRESS;
-    }
-    nmbs_bitfield_reset(inputs_out);
-    for (uint16_t i = 0; i < quantity; i++) {
-        nmbs_bitfield_write(inputs_out, i,
-                            di_module_get_input((uint8_t)(address + i)));
-    }
-    return NMBS_ERROR_NONE;
-}
-
 static nmbs_error cb_read_input_registers(uint16_t address, uint16_t quantity,
                                           uint16_t* registers_out)
 {
-    /* Allow read of DI block (0..11) and the metadata block (120..125). */
+    /* Allow read of the DQ echo block (0..11) and the metadata block (120..125). */
     for (uint16_t i = 0; i < quantity; i++) {
         const uint16_t a = (uint16_t)(address + i);
-        if (a < MB_DI_COUNT || (a >= MB_IR_FW_VER_MAJOR && a <= MB_IR_MODULE_ID)) {
+        if (a < MB_DQ_COUNT || (a >= MB_IR_FW_VER_MAJOR && a <= MB_IR_MODULE_ID)) {
             registers_out[i] = read_input(a);
         } else {
             return NMBS_EXCEPTION_ILLEGAL_DATA_ADDRESS;
@@ -320,7 +365,7 @@ static nmbs_error cb_write_multiple_registers(uint16_t address, uint16_t quantit
 
 static const nmbs_callbacks s_callbacks = {
     .read_coils                = NULL,
-    .read_discrete_inputs      = cb_read_discrete_inputs,
+    .read_discrete_inputs      = NULL,
     .read_holding_registers    = cb_read_holding_registers,
     .read_input_registers      = cb_read_input_registers,
     .write_single_coil         = NULL,

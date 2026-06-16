@@ -20,7 +20,7 @@
 #include "stm32f4xx_hal.h"
 
 #include "button_module.h"
-#include "di_module.h"
+#include "dq_module.h"
 #include "led_module.h"
 #include "modbus_app.h"
 #include "modbus_tcp_server.h"
@@ -44,18 +44,6 @@ uint32_t modbus_app_last_request_tick(void);
 /* ---------------------------------------------------------------------------
  * Sub-tasks
  * ------------------------------------------------------------------------- */
-
-/* DI sampling task: 1 ms period, drives the anti-bounce filter. */
-static void di_task(void* arg)
-{
-    (void)arg;
-    uint32_t tick = osKernelGetTickCount();
-    for (;;) {
-        di_module_tick();
-        tick += 1u;
-        osDelayUntil(tick);
-    }
-}
 
 /* LED state machine: 10 ms tick. */
 static void led_task(void* arg)
@@ -176,8 +164,15 @@ void app_run(void)
         /* Not reached. */
     }
 
-    /* Initialise the remaining hardware drivers. */
-    di_module_init(s->di_filter_ms);
+    /* Initialise the remaining hardware drivers. Bring the outputs up in the
+     * persisted power-on state with their per-output comms-loss behaviour. */
+    dq_channel_cfg_t dq_cfg[DQ_MODULE_CHANNEL_COUNT];
+    for (uint8_t i = 0; i < DQ_MODULE_CHANNEL_COUNT; i++) {
+        dq_cfg[i].mode          = s->dq_mode[i];
+        dq_cfg[i].safe_value    = (uint8_t)((s->dq_safe_mask >> i) & 1u);
+        dq_cfg[i].timeout_100ms = s->dq_timeout[i];
+    }
+    dq_module_init(dq_cfg, s->dq_value_mask);
     modbus_app_init();
 
     /* Apply network configuration (static or DHCP). */
@@ -195,13 +190,9 @@ void app_run(void)
         }
     }
 
-    /* Spawn the DI sampling task. The LED task was started earlier so that
-     * the factory-reset burst is visible during the boot-time button-hold
-     * path (see above). */
-    const osThreadAttr_t di_attr  = {
-        .name = "DI", .stack_size = 384, .priority = osPriorityHigh
-    };
-    osThreadNew(di_task, NULL, &di_attr);
+    /* Outputs are driven directly from the Modbus holding-register callbacks,
+     * so there is no periodic output-sampling task. The comms-loss safe-state
+     * logic is evaluated from the housekeeping loop below. */
 
     /* Spawn Modbus TCP server. */
     modbus_tcp_server_start();
@@ -212,6 +203,15 @@ void app_run(void)
     for (;;) {
         HAL_IWDG_Refresh(&hiwdg);
         update_led_state_from_traffic();
+
+        /* Drive the per-output comms-loss safe state based on how long it has
+         * been since the last Modbus request (0 == none yet -> since boot). */
+        {
+            const uint32_t now      = HAL_GetTick();
+            const uint32_t last_req = modbus_app_last_request_tick();
+            const uint32_t since    = (last_req == 0u) ? now : (now - last_req);
+            dq_module_eval_link_loss(since);
+        }
 
         if (modbus_app_take_pending_save()) {
             HAL_IWDG_Refresh(&hiwdg);

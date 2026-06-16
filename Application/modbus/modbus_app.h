@@ -3,22 +3,26 @@
   * @file    modbus_app.h
   * @brief   Modbus register-map adapter.
   *
-  *  Map of the device:
-  *
-  *    Discrete Inputs (FC02):
-  *      0..11   - DI1..DI12 filtered state (read-only)
+  *  Map of the device (12x discrete outputs). The DQ control/configuration
+  *  block lives in holding registers 50..98 so it never overlaps the address
+  *  ranges used by other module types (e.g. 12DI).
   *
   *    Input Registers (FC04):
-  *      0..11   - DI1..DI12 filtered state, 0 or 1
+  *      0..11   - DQ1..DQ12 output state, 0 or 1 (read-only echo)
   *      120     - firmware version major
   *      121     - firmware version minor
   *      122     - uptime, seconds (low word)
   *      123     - uptime, seconds (high word)
-  *      124     - active poll mask of DI1..DI12 as a 12-bit value
+  *      124     - output state mask of DQ1..DQ12 as a 12-bit value
   *      125     - module ID (read-only, identifies hardware variant)
   *
   *    Holding Registers (FC03/FC06/FC10):
-  *      100     - DI filter time, ms (10..1000), default 50
+  *      50      - group output register: bit i (0..11) -> DQ(i+1) (R/W)
+  *      51..62  - DQ1..DQ12 output value, 0/1 (R/W)
+  *      63..74  - DQ1..DQ12 comms-loss mode: 0=HOLD, 1=ZERO, 2=SAFE
+  *      75..86  - DQ1..DQ12 safe value, 0/1 (used by SAFE mode)
+  *      87..98  - DQ1..DQ12 comms-loss timeout, x100 ms (0 = immediate)
+  *      99      - reserved
   *      101     - LED mode (0 = ALW_OFF, 1 = ALW_ON, 2 = STATE_MACHINE)
   *      102     - Modbus slave id (informational on TCP)
   *      103     - Modbus TCP port
@@ -29,6 +33,9 @@
   *      117     - "save settings" trigger - write 0xA5A5 to commit to Flash
   *      118     - "reboot" trigger          - write 0xB00B to soft-reset
   *      119     - "factory reset" trigger   - write 0xDEAD to reload defaults
+  *
+  *  Output values and per-output configuration are committed to Flash by the
+  *  "save settings" trigger and restored at power-on.
   ******************************************************************************
   */
 #ifndef APPLICATION_MODBUS_APP_H
@@ -56,8 +63,17 @@ extern "C" {
 #define BOOT_REQUEST_FLAG_ADDR      0x2001FFF0u
 #define BOOT_REQUEST_MAGIC          0xB007CAFEu
 
+/* Number of discrete outputs. */
+#define MB_DQ_COUNT                 12u
+
+/* Discrete-output control / configuration block (holding registers). */
+#define MB_HR_DQ_GROUP              50u    /* group output mask (R/W)        */
+#define MB_HR_DQ_VALUE_BASE         51u    /* 51..62  per-output value       */
+#define MB_HR_DQ_MODE_BASE          63u    /* 63..74  per-output loss mode   */
+#define MB_HR_DQ_SAFE_BASE          75u    /* 75..86  per-output safe value  */
+#define MB_HR_DQ_TIMEOUT_BASE       87u    /* 87..98  per-output timeout     */
+
 /* Holding register addresses, exposed for unit tests / introspection. */
-#define MB_HR_DI_FILTER_MS          100u
 #define MB_HR_LED_MODE              101u
 #define MB_HR_SLAVE_ID              102u
 #define MB_HR_TCP_PORT              103u
@@ -74,18 +90,16 @@ extern "C" {
 #define MB_IR_FW_VER_MINOR          121u
 #define MB_IR_UPTIME_LO             122u
 #define MB_IR_UPTIME_HI             123u
-#define MB_IR_DI_MASK               124u
+#define MB_IR_DQ_MASK               124u
 #define MB_IR_MODULE_ID             125u
 
 /* Module ID values for MB_IR_MODULE_ID (register 125).
  * Select the active variant; comment out the rest. */
-#define MODULE_ID_12DI  0x12D1u  /* 12x DI — 12DI/D4MG (this build) */
-/* #define MODULE_ID_12D0  0x12D0u */  /* 12x DO                    */
+/* #define MODULE_ID_12DI  0x12D1u */  /* 12x DI                    */
+#define MODULE_ID_12D0  0x12D0u  /* 12x DO — 12DQ/D4MG (this build) */
 /* #define MODULE_ID_04RD  0x04DDu */  /* 4x Relay-DO               */
 /* #define MODULE_ID_08A1  0x08A1u */  /* 8x AI variant 1           */
 /* #define MODULE_ID_08A0  0x08A0u */  /* 8x AO variant 0           */
-
-#define MB_DI_COUNT                 12u
 
 /** Initialise the modbus register adapter. Must be called after settings_init(). */
 void modbus_app_init(void);

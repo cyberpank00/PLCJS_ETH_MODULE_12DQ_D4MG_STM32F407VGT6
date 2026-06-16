@@ -19,7 +19,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Set the project name
-set(CMAKE_PROJECT_NAME PLCJS_ETH_MODULE_12DI_D4MG_STM32F407VGT6)
+set(CMAKE_PROJECT_NAME PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6)
 
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
@@ -49,7 +49,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # HW_REVISION encoding: (major << 8) | minor  →  e.g. hw:01.02 = 0x0102
 # FW_VERSION  encoding: (major << 8) | minor  →  e.g. fw:01.02 = 0x0102
 # OTA acceptance: product_id exact match + hw_revision major byte match.
-set(PRODUCT_ID    "0x12D1D4A0" CACHE STRING "Product ID embedded in fw_header_t")
+set(PRODUCT_ID    "0x12D0D4A0" CACHE STRING "Product ID embedded in fw_header_t")
 set(HW_REVISION   "0x0101"     CACHE STRING "HW revision (major<<8|minor), e.g. hw:01.01 = 0x0101")
 set(FW_VERSION    "0x0101"     CACHE STRING "FW version  (major<<8|minor), e.g. fw:01.01 = 0x0101")
 
@@ -57,7 +57,7 @@ set(FW_VERSION    "0x0101"     CACHE STRING "FW version  (major<<8|minor), e.g. 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Application sources
     Application/app/app.c
-    Application/di/di_module.c
+    Application/dq/dq_module.c
     Application/led/led_module.c
     Application/button/button_module.c
     Application/ksz8863/ksz8863.c
@@ -72,7 +72,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     Application/app
-    Application/di
+    Application/dq
     Application/led
     Application/button
     Application/ksz8863
