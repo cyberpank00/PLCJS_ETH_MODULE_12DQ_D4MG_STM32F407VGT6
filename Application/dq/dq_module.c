@@ -20,7 +20,7 @@
 /* ---------------------------------------------------------------------------
  * Pin map (taken from main.h / gpio.c). Index 0 corresponds to DQ1 in the
  * Modbus map: register index 0 == channel index 0 == DQ1 on the silkscreen.
- * The .ioc labels are DQ0..DQ11 (with DQ0 on PB3 and DQ1 on PD7), and the
+ * The .ioc labels are DQ0..DQ11 (with DQ0 on PC11 and DQ1 on PC10), and the
  * silkscreen labels are DQ1..DQ12, so we publish a stable mapping here.
  * ------------------------------------------------------------------------- */
 typedef struct {
@@ -30,18 +30,18 @@ typedef struct {
 
 static const dq_pin_t s_pins[DQ_MODULE_CHANNEL_COUNT] = {
     /* idx -> Modbus register */
-    { DQ0_GPIO_Port,  DQ0_Pin  },   /*  0 -> DQ1 (PB3)   */
-    { DQ1_GPIO_Port,  DQ1_Pin  },   /*  1 -> DQ2 (PD7)   */
-    { DQ2_GPIO_Port,  DQ2_Pin  },   /*  2 -> DQ3 (PD6)   */
-    { DQ3_GPIO_Port,  DQ3_Pin  },   /*  3 -> DQ4 (PD5)   */
-    { DQ4_GPIO_Port,  DQ4_Pin  },   /*  4 -> DQ5 (PD4)   */
-    { DQ5_GPIO_Port,  DQ5_Pin  },   /*  5 -> DQ6 (PD3)   */
-    { DQ6_GPIO_Port,  DQ6_Pin  },   /*  6 -> DQ7 (PD2)   */
-    { DQ7_GPIO_Port,  DQ7_Pin  },   /*  7 -> DQ8 (PD1)   */
-    { DQ8_GPIO_Port,  DQ8_Pin  },   /*  8 -> DQ9 (PD0)   */
-    { DQ9_GPIO_Port,  DQ9_Pin  },   /*  9 -> DQ10 (PC12) */
-    { DQ10_GPIO_Port, DQ10_Pin },   /* 10 -> DQ11 (PC11) */
-    { DQ11_GPIO_Port, DQ11_Pin },   /* 11 -> DQ12 (PC10) */
+    { DQ0_GPIO_Port,  DQ0_Pin  },   /*  0 -> DQ1 (PC11)  */
+    { DQ1_GPIO_Port,  DQ1_Pin  },   /*  1 -> DQ2 (PC10)  */
+    { DQ2_GPIO_Port,  DQ2_Pin  },   /*  2 -> DQ3 (PA9)   */
+    { DQ3_GPIO_Port,  DQ3_Pin  },   /*  3 -> DQ4 (PA8)   */
+    { DQ4_GPIO_Port,  DQ4_Pin  },   /*  4 -> DQ5 (PC9)   */
+    { DQ5_GPIO_Port,  DQ5_Pin  },   /*  5 -> DQ6 (PC8)   */
+    { DQ6_GPIO_Port,  DQ6_Pin  },   /*  6 -> DQ7 (PD10)  */
+    { DQ7_GPIO_Port,  DQ7_Pin  },   /*  7 -> DQ8 (PD9)   */
+    { DQ8_GPIO_Port,  DQ8_Pin  },   /*  8 -> DQ9 (PD8)   */
+    { DQ9_GPIO_Port,  DQ9_Pin  },   /*  9 -> DQ10 (PE14) */
+    { DQ10_GPIO_Port, DQ10_Pin },   /* 10 -> DQ11 (PE13) */
+    { DQ11_GPIO_Port, DQ11_Pin },   /* 11 -> DQ12 (PE12) */
 };
 
 /* ---------------------------------------------------------------------------
@@ -79,22 +79,25 @@ static void dq_configure_outputs(void)
     gpio.Pull  = GPIO_NOPULL;
     gpio.Speed = GPIO_SPEED_FREQ_LOW;
 
-    /* PB: DQ0 (= DQ1 logical, PB3) */
-    HAL_GPIO_WritePin(GPIOB, DQ0_Pin, GPIO_PIN_RESET);
-    gpio.Pin = DQ0_Pin;
-    HAL_GPIO_Init(GPIOB, &gpio);
+    /* PA: DQ2 (PA9), DQ3 (PA8) */
+    HAL_GPIO_WritePin(GPIOA, DQ2_Pin | DQ3_Pin, GPIO_PIN_RESET);
+    gpio.Pin = DQ2_Pin | DQ3_Pin;
+    HAL_GPIO_Init(GPIOA, &gpio);
 
-    /* PC: DQ9, DQ10, DQ11 */
-    HAL_GPIO_WritePin(GPIOC, DQ9_Pin | DQ10_Pin | DQ11_Pin, GPIO_PIN_RESET);
-    gpio.Pin = DQ9_Pin | DQ10_Pin | DQ11_Pin;
+    /* PC: DQ0 (PC11), DQ1 (PC10), DQ4 (PC9), DQ5 (PC8) */
+    HAL_GPIO_WritePin(GPIOC, DQ0_Pin | DQ1_Pin | DQ4_Pin | DQ5_Pin, GPIO_PIN_RESET);
+    gpio.Pin = DQ0_Pin | DQ1_Pin | DQ4_Pin | DQ5_Pin;
     HAL_GPIO_Init(GPIOC, &gpio);
 
-    /* PD: DQ1..DQ8 */
-    HAL_GPIO_WritePin(GPIOD, DQ1_Pin | DQ2_Pin | DQ3_Pin | DQ4_Pin |
-                             DQ5_Pin | DQ6_Pin | DQ7_Pin | DQ8_Pin, GPIO_PIN_RESET);
-    gpio.Pin = DQ1_Pin | DQ2_Pin | DQ3_Pin | DQ4_Pin |
-               DQ5_Pin | DQ6_Pin | DQ7_Pin | DQ8_Pin;
+    /* PD: DQ6 (PD10), DQ7 (PD9), DQ8 (PD8) */
+    HAL_GPIO_WritePin(GPIOD, DQ6_Pin | DQ7_Pin | DQ8_Pin, GPIO_PIN_RESET);
+    gpio.Pin = DQ6_Pin | DQ7_Pin | DQ8_Pin;
     HAL_GPIO_Init(GPIOD, &gpio);
+
+    /* PE: DQ9 (PE14), DQ10 (PE13), DQ11 (PE12) */
+    HAL_GPIO_WritePin(GPIOE, DQ9_Pin | DQ10_Pin | DQ11_Pin, GPIO_PIN_RESET);
+    gpio.Pin = DQ9_Pin | DQ10_Pin | DQ11_Pin;
+    HAL_GPIO_Init(GPIOE, &gpio);
 }
 
 /* ---------------------------------------------------------------------------

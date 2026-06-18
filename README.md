@@ -178,18 +178,18 @@ STM32_Programmer_CLI -c port=SWD -w build/Debug/PLCJS_ETH_MODULE_12DQ_D4MG_STM32
 
 | Modbus index | Silkscreen | MCU pin | Mask bit |
 |---:|---|---|---:|
-| 0 | DQ1 | PB3 | `0x001` |
-| 1 | DQ2 | PD7 | `0x002` |
-| 2 | DQ3 | PD6 | `0x004` |
-| 3 | DQ4 | PD5 | `0x008` |
-| 4 | DQ5 | PD4 | `0x010` |
-| 5 | DQ6 | PD3 | `0x020` |
-| 6 | DQ7 | PD2 | `0x040` |
-| 7 | DQ8 | PD1 | `0x080` |
-| 8 | DQ9 | PD0 | `0x100` |
-| 9 | DQ10 | PC12 | `0x200` |
-| 10 | DQ11 | PC11 | `0x400` |
-| 11 | DQ12 | PC10 | `0x800` |
+| 0 | DQ1 | PC11 | `0x001` |
+| 1 | DQ2 | PC10 | `0x002` |
+| 2 | DQ3 | PA9 | `0x004` |
+| 3 | DQ4 | PA8 | `0x008` |
+| 4 | DQ5 | PC9 | `0x010` |
+| 5 | DQ6 | PC8 | `0x020` |
+| 6 | DQ7 | PD10 | `0x040` |
+| 7 | DQ8 | PD9 | `0x080` |
+| 8 | DQ9 | PD8 | `0x100` |
+| 9 | DQ10 | PE14 | `0x200` |
+| 10 | DQ11 | PE13 | `0x400` |
+| 11 | DQ12 | PE12 | `0x800` |
 
 ### Режимы при потере связи (индивидуально на каждый выход)
 

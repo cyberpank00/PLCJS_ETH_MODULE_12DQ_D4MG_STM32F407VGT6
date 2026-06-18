@@ -3,7 +3,7 @@
   * @file    button_module.h
   * @brief   FACT_RES button handling.
   *
-  *  The push-button is wired between PC8 and GND with internal pull-up, so a
+  *  The push-button is wired between PE10 and GND with internal pull-up, so a
   *  pressed button reads LOW. Holding the button at power-up triggers a
   *  factory reset; the routine below performs the polling synchronously and
   *  is intended to be invoked early during application bring-up.
