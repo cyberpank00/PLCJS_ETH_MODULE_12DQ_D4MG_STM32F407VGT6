@@ -3,3 +3,4 @@ build/
 
 # IDE / editor
 .vscode/
+.clangd

@@ -1,5 +1,0 @@
-Diagnostics:
-  UnusedIncludes: None
-  MissingIncludes: None
-CompileFlags:
-  CompilationDatabase: build/Debug
