@@ -61,6 +61,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Application/led/led_module.c
     Application/button/button_module.c
     Application/ksz8863/ksz8863.c
+    Application/net_id/net_id.c
     Application/settings/settings.c
     Application/modbus/modbus_app.c
     Application/modbus/modbus_tcp_server.c
@@ -76,6 +77,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     Application/led
     Application/button
     Application/ksz8863
+    Application/net_id
     Application/settings
     Application/modbus
     Application/fw_header
