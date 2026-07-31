@@ -51,15 +51,17 @@ typedef struct __attribute__((packed)) {
     uint32_t reserved1[2];
 } fw_header_t;
 
-/* Compile-time defaults — overridden via CMake -D flags. */
+/* Canonical module identity — the single source of truth for this module.
+ * May still be overridden at build time via -DFW_PRODUCT_ID /
+ * -DFW_HW_REVISION / -DFW_VERSION_VALUE (guarded below). Bump fw_version here. */
 #ifndef FW_PRODUCT_ID
-#define FW_PRODUCT_ID    0x12D0D4A0u
+#define FW_PRODUCT_ID    0x504C1202u  /* PL, 12ch, DO */
 #endif
 #ifndef FW_HW_REVISION
 #define FW_HW_REVISION   0x0101u  /* hw:01.01 */
 #endif
 #ifndef FW_VERSION_VALUE
-#define FW_VERSION_VALUE 0x0101u  /* fw:01.01 */
+#define FW_VERSION_VALUE 0x0102u  /* fw:01.02 */
 #endif
 
 /** The single header instance placed in the .fw_header linker section. */
