@@ -15,12 +15,16 @@
 #include "dq_module.h"
 #include "led_module.h"
 #include "settings.h"
+#include "fw_header.h"
 
 /* ---------------------------------------------------------------------------
- * Firmware version
+ * Firmware version — derived from FW_VERSION_VALUE (set via CMake FW_VERSION,
+ * encoding (major << 8) | minor) so there is a single source of truth shared
+ * with the firmware header. Bumping FW_VERSION in CMakeLists updates both the
+ * fw_header and the Modbus-reported version (IR120/IR121).
  * ------------------------------------------------------------------------- */
-#define FW_VER_MAJOR    1u
-#define FW_VER_MINOR    0u
+#define FW_VER_MAJOR    ((FW_VERSION_VALUE >> 8) & 0xFFu)
+#define FW_VER_MINOR    (FW_VERSION_VALUE & 0xFFu)
 
 /* ---------------------------------------------------------------------------
  * Pending action flags driven by special holding-register triggers.
