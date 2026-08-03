@@ -66,6 +66,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Application/modbus/modbus_tcp_server.c
     Application/fw_header/fw_header.c
     Application/net_id/net_id.c
+    Application/discovery/discovery.c
     # Third-party
     Application/third_party/nanomodbus/nanomodbus.c
 )
@@ -81,6 +82,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     Application/modbus
     Application/fw_header
     Application/net_id
+    Application/discovery
     Application/third_party/nanomodbus
 )
 

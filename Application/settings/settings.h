@@ -32,7 +32,16 @@ extern "C" {
 #define SETTINGS_DEF_SLAVE_ID       1u
 #define SETTINGS_DEF_TCP_PORT       502u
 
-#define SETTINGS_DEF_USE_DHCP       0u
+/* Network mode stored in settings.use_dhcp (kept that field name for on-flash
+ * layout compatibility — no version bump, deployed units keep their config):
+ *   0 = STATIC, 1 = DHCP, 2 = LINK-LOCAL (169.254/16, factory/unconfigured). */
+#define NET_MODE_STATIC            0u
+#define NET_MODE_DHCP              1u
+#define NET_MODE_LINKLOCAL         2u
+
+/* Factory default: link-local / "unconfigured" (assign IP via discovery tool or
+ * a plain Modbus client on the labelled 169.254.x.y address). */
+#define SETTINGS_DEF_USE_DHCP       NET_MODE_LINKLOCAL
 
 #define SETTINGS_DEF_IP0            192u
 #define SETTINGS_DEF_IP1            168u
@@ -70,7 +79,7 @@ typedef struct {
 
     uint16_t modbus_tcp_port;       /* default 502                            */
     uint8_t  modbus_slave_id;       /* default 1                              */
-    uint8_t  use_dhcp;              /* 0 = static, 1 = DHCP                   */
+    uint8_t  use_dhcp;              /* net mode: 0=static,1=DHCP,2=link-local */
 
     uint8_t  ip[4];
     uint8_t  netmask[4];
@@ -82,10 +91,12 @@ typedef struct {
     uint8_t  dq_mode[SETTINGS_DQ_COUNT];    /* dq_loss_mode_t per output      */
     uint16_t dq_timeout[SETTINGS_DQ_COUNT]; /* comms-loss timeout, x100 ms    */
 
-    uint8_t  reserved1[8];
+    char     name[8];               /* device name, NUL-padded (discovery)   */
 
     uint32_t crc32;                 /* CRC32 over all preceding bytes        */
 } settings_t;
+
+#define SETTINGS_NAME_LEN   8u
 
 /* API ----------------------------------------------------------------------- */
 

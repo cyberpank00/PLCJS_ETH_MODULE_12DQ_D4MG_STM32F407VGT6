@@ -21,10 +21,12 @@
 #include "stm32f4xx_hal.h"
 
 #include "button_module.h"
+#include "discovery.h"
 #include "dq_module.h"
 #include "led_module.h"
 #include "modbus_app.h"
 #include "modbus_tcp_server.h"
+#include "net_id.h"
 #include "settings.h"
 
 /* The LwIP MX_LWIP_Init() exposes its struct netif so that we can override
@@ -102,13 +104,14 @@ static void perform_factory_reset(void)
 static void apply_network_config(void)
 {
     const settings_t* s = settings_get();
+    const uint8_t mode = s->use_dhcp;   /* 0=static, 1=DHCP, 2=link-local */
 
-    if (s->use_dhcp) {
+    if (mode == NET_MODE_DHCP) {
         /* Already on DHCP (lease running or in progress) → nothing to do. */
         if (netif_dhcp_data(&gnetif) != NULL) {
             return;
         }
-        /* Switch static → DHCP: clear the static address and start DHCP. */
+        /* Switch to DHCP: clear the address and start DHCP. */
         ip4_addr_t any;
         ip4_addr_set_zero(&any);
         netif_set_addr(&gnetif, &any, &any, &any);
@@ -116,14 +119,23 @@ static void apply_network_config(void)
         return;
     }
 
-    /* Static configuration. */
+    /* Static or link-local: compute the target address. */
     ip4_addr_t ip, mask, gw;
-    IP4_ADDR(&ip,   s->ip[0],      s->ip[1],      s->ip[2],      s->ip[3]);
-    IP4_ADDR(&mask, s->netmask[0], s->netmask[1], s->netmask[2], s->netmask[3]);
-    IP4_ADDR(&gw,   s->gateway[0], s->gateway[1], s->gateway[2], s->gateway[3]);
+    if (mode == NET_MODE_LINKLOCAL) {
+        /* Factory / unconfigured: deterministic 169.254.x.y (RFC 3927). */
+        uint8_t ll[4];
+        net_id_get_linklocal(ll);
+        IP4_ADDR(&ip,   ll[0], ll[1], ll[2], ll[3]);
+        IP4_ADDR(&mask, 255u, 255u, 0u, 0u);
+        ip4_addr_set_zero(&gw);
+    } else {
+        IP4_ADDR(&ip,   s->ip[0],      s->ip[1],      s->ip[2],      s->ip[3]);
+        IP4_ADDR(&mask, s->netmask[0], s->netmask[1], s->netmask[2], s->netmask[3]);
+        IP4_ADDR(&gw,   s->gateway[0], s->gateway[1], s->gateway[2], s->gateway[3]);
+    }
 
-    /* Already static with exactly this address → nothing to do (avoids
-     * needless churn when an unrelated setting is saved). */
+    /* Already at exactly this address (and not on DHCP) → nothing to do
+     * (avoids needless churn when an unrelated setting is saved). */
     if (netif_dhcp_data(&gnetif) == NULL &&
         ip4_addr_cmp(netif_ip4_addr(&gnetif), &ip) &&
         ip4_addr_cmp(netif_ip4_netmask(&gnetif), &mask) &&
@@ -131,7 +143,7 @@ static void apply_network_config(void)
         return;
     }
 
-    /* Stop DHCP if it happens to be running, then load the static address. */
+    /* Stop DHCP if it happens to be running, then load the address. */
     dhcp_release_and_stop(&gnetif);
     netif_set_addr(&gnetif, &ip, &mask, &gw);
 }
@@ -227,6 +239,10 @@ void app_run(void)
     /* Spawn Modbus TCP server. */
     modbus_tcp_server_start();
 
+    /* Open the discovery responder (UDP/20556) so the device can be found and
+     * addressed by MAC even in the factory link-local state. */
+    discovery_init();
+
     /* Housekeeping loop: feeds the watchdog, processes deferred actions and
      * keeps the LED state in sync with the Modbus traffic. */
     uint32_t tick = osKernelGetTickCount();
@@ -250,6 +266,22 @@ void app_run(void)
              * immediately, without a reboot. Runs in the tcpip thread for
              * LwIP thread-safety; a no-op if the address is unchanged. */
             tcpip_callback(apply_network_config_tcpip, NULL);
+        }
+
+        /* Discovery-protocol deferred actions (Flash write / reset run here,
+         * outside the tcpip thread that received the UDP request). */
+        if (discovery_take_pending_save()) {
+            HAL_IWDG_Refresh(&hiwdg);
+            settings_save();
+            tcpip_callback(apply_network_config_tcpip, NULL);
+        }
+        if (discovery_take_pending_factory()) {
+            perform_factory_reset();
+            /* Not reached. */
+        }
+        if (discovery_take_pending_reboot()) {
+            NVIC_SystemReset();
+            /* Not reached. */
         }
         if (modbus_app_take_pending_factory_reset()) {
             perform_factory_reset();
