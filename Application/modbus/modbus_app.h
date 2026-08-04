@@ -31,7 +31,9 @@
   *      112..115- gateway octets
   *      116     - use DHCP (0/1)
   *      117     - "save settings" trigger - write 0xA5A5 to commit to Flash
-  *      118     - "reboot" trigger          - write 0xB00B to soft-reset
+  *      118     - "reboot" trigger          - write 0xB00B to soft-reset,
+  *                0xB007 to enter the bootloader, 0x8863 to hardware-reset
+  *                the KSZ8863 Ethernet switch (recovery)
   *      119     - "factory reset" trigger   - write 0xDEAD to reload defaults
   *
   *  Output values and per-output configuration are committed to Flash by the
@@ -56,6 +58,11 @@ extern "C" {
 #define MODBUS_TRIG_FACTORY_RESET   0xDEADu
 /* Reboot into the bootloader (for OTA). Written to MB_HR_TRIG_REBOOT (118). */
 #define MODBUS_TRIG_BOOTLOADER      0xB007u
+/* Hardware-reset the KSZ8863 Ethernet switch (operator recovery command).
+ * Written to MB_HR_TRIG_REBOOT (118). Interrupts pass-through traffic for
+ * the duration of the chip reset + port auto-negotiation — use only when the
+ * switch shows no signs of life. */
+#define MODBUS_TRIG_SWITCH_RESET    0x8863u
 
 /* No-init RAM cell shared with the bootloader: writing BOOT_REQUEST_MAGIC and
  * resetting makes the bootloader stay active. Address/magic MUST match the

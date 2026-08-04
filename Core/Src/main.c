@@ -25,7 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "ksz8863.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -92,7 +92,11 @@ int main(void)
   MX_GPIO_Init();
   MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
-
+  /* KSZ8863 boot policy: hardware-reset the switch only on a cold boot
+   * (power-on / brown-out). On warm reboots (soft reset, IWDG, NRST) the
+   * switch keeps forwarding pass-through traffic between its external ports
+   * and must not be disturbed. */
+  ksz8863_boot_init();
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -196,6 +200,10 @@ void Error_Handler(void)
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
+  /* A halted MCU must never take the pass-through switch down with it:
+   * release the KSZ8863 reset line so ports 1<->2 keep forwarding even
+   * while we sit here waiting for the IWDG to restart the system. */
+  HAL_GPIO_WritePin(ETHRST_GPIO_Port, ETHRST_Pin, GPIO_PIN_SET);
   while (1)
   {
   }

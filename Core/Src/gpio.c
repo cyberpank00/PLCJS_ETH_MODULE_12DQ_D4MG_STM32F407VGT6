@@ -62,7 +62,10 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, DQ5_Pin|DQ4_Pin|DQ1_Pin|DQ0_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, DQ8_Pin|DQ7_Pin|DQ6_Pin|ETHRST_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, DQ8_Pin|DQ7_Pin|DQ6_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(ETHRST_GPIO_Port, ETHRST_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin : ETHINT_Pin */
   GPIO_InitStruct.Pin = ETHINT_Pin;

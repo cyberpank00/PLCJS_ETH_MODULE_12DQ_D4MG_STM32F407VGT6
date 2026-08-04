@@ -34,6 +34,7 @@ static volatile uint8_t s_pending_save           = 0u;
 static volatile uint8_t s_pending_reboot         = 0u;
 static volatile uint8_t s_pending_factory_reset  = 0u;
 static volatile uint8_t s_pending_bootloader     = 0u;
+static volatile uint8_t s_pending_switch_reset   = 0u;
 static volatile uint32_t s_last_request_tick     = 0u;
 
 void modbus_app_init(void)
@@ -42,6 +43,7 @@ void modbus_app_init(void)
     s_pending_reboot        = 0u;
     s_pending_factory_reset = 0u;
     s_pending_bootloader    = 0u;
+    s_pending_switch_reset  = 0u;
     s_last_request_tick     = 0u;
 }
 
@@ -75,6 +77,13 @@ uint8_t modbus_app_take_pending_bootloader(void)
 {
     uint8_t v = s_pending_bootloader;
     s_pending_bootloader = 0u;
+    return v;
+}
+
+uint8_t modbus_app_take_pending_switch_reset(void)
+{
+    uint8_t v = s_pending_switch_reset;
+    s_pending_switch_reset = 0u;
     return v;
 }
 
@@ -204,6 +213,8 @@ static nmbs_error apply_holding_write(uint16_t address, uint16_t value)
             s_pending_reboot = 1u;
         } else if (value == MODBUS_TRIG_BOOTLOADER) {
             s_pending_bootloader = 1u;
+        } else if (value == MODBUS_TRIG_SWITCH_RESET) {
+            s_pending_switch_reset = 1u;
         } else if (value != 0u) {
             return NMBS_EXCEPTION_ILLEGAL_DATA_VALUE;
         }
