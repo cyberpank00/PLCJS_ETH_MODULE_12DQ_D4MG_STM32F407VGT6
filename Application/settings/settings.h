@@ -16,7 +16,10 @@ extern "C" {
 
 /* Magic and version --------------------------------------------------------- */
 #define SETTINGS_MAGIC          0x12D04A57u
-#define SETTINGS_VERSION        1u
+/* v2: device name grown from 8 to 16 bytes so the discovery name limit (15
+ * chars) matches every other variant. The struct size changed, so v1 images
+ * are rejected on load and fall back to factory defaults (link-local). */
+#define SETTINGS_VERSION        2u
 
 /* Number of discrete outputs persisted in the settings image. */
 #define SETTINGS_DQ_COUNT           12u
@@ -91,12 +94,12 @@ typedef struct {
     uint8_t  dq_mode[SETTINGS_DQ_COUNT];    /* dq_loss_mode_t per output      */
     uint16_t dq_timeout[SETTINGS_DQ_COUNT]; /* comms-loss timeout, x100 ms    */
 
-    char     name[8];               /* device name, NUL-padded (discovery)   */
+    char     name[16];              /* device name, NUL-padded (discovery)   */
 
     uint32_t crc32;                 /* CRC32 over all preceding bytes        */
 } settings_t;
 
-#define SETTINGS_NAME_LEN   8u
+#define SETTINGS_NAME_LEN   16u
 
 /* API ----------------------------------------------------------------------- */
 
