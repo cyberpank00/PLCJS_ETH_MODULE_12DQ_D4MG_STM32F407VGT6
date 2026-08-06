@@ -7,6 +7,14 @@
   *  block lives in holding registers 50..98 so it never overlaps the address
   *  ranges used by other module types (e.g. 12DI).
   *
+  *    Coils (FC01/FC05/FC15):
+  *      0..11   - DQ1..DQ12 output, 0/1 (R/W). A coil write is equivalent to a
+  *                write of the matching HR51..62 value register: it drives the
+  *                output through the same path, so the comms-loss mode/timeout
+  *                logic (HR63..98) applies, and the change is committed to Flash
+  *                only by the "save settings" trigger (HR117). FC01 returns the
+  *                actual output mask.
+  *
   *    Input Registers (FC04):
   *      0..11   - DQ1..DQ12 output state, 0 or 1 (read-only echo)
   *      120     - firmware version major

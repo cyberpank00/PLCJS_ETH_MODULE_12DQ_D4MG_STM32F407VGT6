@@ -379,14 +379,62 @@ static nmbs_error cb_write_multiple_registers(uint16_t address, uint16_t quantit
     return NMBS_ERROR_NONE;
 }
 
+/* ---------------------------------------------------------------------------
+ * Coil interface (FC01/FC05/FC15) — coils 0..11 alias DQ1..DQ12.
+ *
+ * A coil write is exactly equivalent to a write of the matching per-output
+ * value register (HR51..62): it drives the physical output through the same
+ * dq_module path, so the comms-loss mode/timeout logic (HR63..98) applies
+ * identically and the change is mirrored into settings RAM. It is committed to
+ * Flash only by the explicit "save settings" trigger (HR117 = 0xA5A5).
+ * FC01 reports the actual output mask (same source as IR124 / the DQ echo).
+ * ------------------------------------------------------------------------- */
+static nmbs_error cb_read_coils(uint16_t address, uint16_t quantity,
+                                nmbs_bitfield coils_out)
+{
+    if ((uint32_t)address + quantity > MB_DQ_COUNT) {
+        return NMBS_EXCEPTION_ILLEGAL_DATA_ADDRESS;
+    }
+    const uint16_t mask = dq_module_get_mask();
+    for (uint16_t i = 0; i < quantity; i++) {
+        const uint16_t bit = (uint16_t)(address + i);
+        nmbs_bitfield_write(coils_out, i, (mask & (1u << bit)) != 0u);
+    }
+    return NMBS_ERROR_NONE;
+}
+
+static nmbs_error cb_write_single_coil(uint16_t address, bool value)
+{
+    if (address >= MB_DQ_COUNT) {
+        return NMBS_EXCEPTION_ILLEGAL_DATA_ADDRESS;
+    }
+    dq_module_set_output((uint8_t)address, value);
+    settings_get()->dq_value_mask = dq_module_get_mask();
+    return NMBS_ERROR_NONE;
+}
+
+static nmbs_error cb_write_multiple_coils(uint16_t address, uint16_t quantity,
+                                          const nmbs_bitfield coils)
+{
+    if ((uint32_t)address + quantity > MB_DQ_COUNT) {
+        return NMBS_EXCEPTION_ILLEGAL_DATA_ADDRESS;
+    }
+    for (uint16_t i = 0; i < quantity; i++) {
+        dq_module_set_output((uint8_t)(address + i),
+                             nmbs_bitfield_read(coils, i));
+    }
+    settings_get()->dq_value_mask = dq_module_get_mask();
+    return NMBS_ERROR_NONE;
+}
+
 static const nmbs_callbacks s_callbacks = {
-    .read_coils                = NULL,
+    .read_coils                = cb_read_coils,
     .read_discrete_inputs      = NULL,
     .read_holding_registers    = cb_read_holding_registers,
     .read_input_registers      = cb_read_input_registers,
-    .write_single_coil         = NULL,
+    .write_single_coil         = cb_write_single_coil,
     .write_single_register     = cb_write_single_register,
-    .write_multiple_coils      = NULL,
+    .write_multiple_coils      = cb_write_multiple_coils,
     .write_multiple_registers  = cb_write_multiple_registers,
 };
 
