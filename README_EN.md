@@ -194,6 +194,20 @@ The output control/configuration block occupies holding registers `50..98` so it
 
 Invalid values return Modbus exception `ILLEGAL_DATA_VALUE`. Invalid addresses return `ILLEGAL_DATA_ADDRESS`.
 
+### Coils, FC01 / FC05 / FC15
+
+Coils `0..11` are an alternative interface to outputs DQ1..DQ12 (zero-based addressing):
+
+| Coil address | Channel | R/W |
+|---:|---|:---:|
+| `0..11` | DQ1..DQ12 | R/W |
+
+- a coil write (FC05/FC15) is equivalent to writing the matching `DQ_VALUE` register (`51..62`): the output is driven through the same path, so the communication-loss mode/timeout logic (`63..98`) applies identically;
+- the change is applied in RAM immediately but committed to Flash only by the explicit `TRIG_SAVE` command (`117 = 0xA5A5`);
+- a coil read (FC01) returns the actual output mask (same source as `DQ_MASK`, IR124).
+
+Discrete inputs (FC02) are not implemented.
+
 ## PyModbus examples
 
 Read firmware version, output mask and module ID:
@@ -214,6 +228,14 @@ Turn DQ1 and DQ3 on (per-register), then the same via the group mask:
 client.write_register(address=51, value=1, device_id=1)        # DQ1 = 1
 client.write_register(address=53, value=1, device_id=1)        # DQ3 = 1
 client.write_register(address=50, value=0x005, device_id=1)    # group: DQ1+DQ3
+```
+
+The same via coils, plus reading the outputs back as coils:
+
+```python
+client.write_coil(address=0, value=True, device_id=1)          # DQ1 = 1 (coil 0)
+client.write_coils(address=0, values=[True, False, True], device_id=1)  # DQ1..DQ3
+print(client.read_coils(address=0, count=12, device_id=1).bits) # DQ1..DQ12 state
 ```
 
 Configure DQ2 to go to SAFE=1 one second after a communication loss:
