@@ -1,4 +1,10 @@
-# PLCJS Ethernet 12DQ
+# PLCJS Ethernet модуль ввода/вывода 12DQ 24VDC
+
+<p align="center">
+  <img src="DOC/images/foto_12do.png" alt="Внешний вид PLCJS Ethernet 12DQ" width="700">
+</p>
+
+<p align="center"><strong>Внешний вид</strong></p>
 
 Прошивка Ethernet-модуля PLCJS с 12 дискретными выходами на базе STM32F407VGT6.
 Устройство управляется по Modbus TCP, сохраняет настройки во внутренней Flash и позволяет независимо настроить поведение каждого выхода при потере связи.
