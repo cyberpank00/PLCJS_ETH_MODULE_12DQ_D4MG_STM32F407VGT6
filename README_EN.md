@@ -1,7 +1,7 @@
 # PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6
 
 <p align="center">
-  <img src="DOC/images/foto_12do.png" alt="PLCJS Ethernet 12DQ appearance" width="700">
+  <img src="DOC/images/foto_12do.png" alt="PLCJS Ethernet 12DQ appearance" width="500">
 </p>
 
 <p align="center"><strong>Appearance</strong></p>

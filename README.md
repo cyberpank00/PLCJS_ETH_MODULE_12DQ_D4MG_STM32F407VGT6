@@ -1,7 +1,7 @@
 # PLCJS Ethernet модуль ввода/вывода 12DQ 24VDC
 
 <p align="center">
-  <img src="DOC/images/foto_12do.png" alt="Внешний вид PLCJS Ethernet 12DQ" width="700">
+  <img src="DOC/images/foto_12do.png" alt="Внешний вид PLCJS Ethernet 12DQ" width="500">
 </p>
 
 <p align="center"><strong>Внешний вид</strong></p>
