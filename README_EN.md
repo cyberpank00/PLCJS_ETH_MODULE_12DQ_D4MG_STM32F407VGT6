@@ -1,5 +1,11 @@
 # PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6
 
+<p align="center">
+  <img src="DOC/images/foto_12do.png" alt="PLCJS Ethernet 12DQ appearance" width="700">
+</p>
+
+<p align="center"><strong>Appearance</strong></p>
+
 Firmware for the PLCJS Ethernet 12-DQ module (12 discrete outputs) based on `STM32F407VGT6`.
 
 The application drives 12 push-pull outputs (direct polarity: logical `1` = high level on the pin), accepts commands over `Modbus TCP`, handles communication loss independently per output (HOLD / ZERO / SAFE modes with a configurable timeout), stores settings in internal Flash, drives `STAT_LED`, supports factory reset, and can hand over control to the Ethernet bootloader for OTA updates.
