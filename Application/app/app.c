@@ -33,7 +33,6 @@
 /* The LwIP MX_LWIP_Init() exposes its struct netif so that we can override
  * the addressing after MX_LWIP_Init() has run. */
 extern struct netif gnetif;
-extern ETH_HandleTypeDef heth;
 
 /* Physical link state from ethernet_link_thread (ethernetif.c). */
 extern volatile uint8_t g_eth_any_link_up;
