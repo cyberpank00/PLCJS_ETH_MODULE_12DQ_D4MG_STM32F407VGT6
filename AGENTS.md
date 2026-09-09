@@ -61,7 +61,7 @@ after any regeneration; do not regenerate casually.
 | `app/` | Orchestrator. Boot order, factory reset, network bring-up, housekeeping loop. Start reading here. |
 | `dq/` | 12-channel discrete output driver, active-high push-pull, per-channel comms-loss behaviour. |
 | `modbus/modbus_app.c` | Register-map adapter (nanoMODBUS callbacks). **The register map is documented in the header comment of `modbus_app.h`.** |
-| `modbus/modbus_tcp_server.c` | Single-client TCP server on LwIP netconn; newest connection wins. |
+| `modbus/modbus_tcp_server.c` | Multi-client (4 slots) TCP server on LwIP netconn; when full, the longest-silent client is evicted (newest-wins). |
 | `settings/` | Flash-backed settings, CRC32-protected, magic + version. |
 | `discovery/` | PDP responder, UDP/20556 broadcast. Find/address a device by MAC without an IP. |
 | `net_id/` | Derives MAC and link-local IPv4 from the 96-bit MCU UID. |
@@ -77,7 +77,7 @@ Violating these produces bugs that only show up on hardware or during OTA.
 
 ### Single sources of truth
 - **Module identity** — `Application/fw_header/fw_header.h`:
-  `FW_PRODUCT_ID = 0x504C1202`, `FW_HW_REVISION = 0x0101`, `FW_VERSION_VALUE = 0x0107`.
+  `FW_PRODUCT_ID = 0x504C1202`, `FW_HW_REVISION = 0x0101`, `FW_VERSION_VALUE = 0x0108`.
   Bump `FW_VERSION_VALUE` here and nowhere else. `CMakeLists.txt` deliberately
   passes no identity defines.
 - **Firmware version over Modbus** — IR120/IR121 are derived from
@@ -90,7 +90,7 @@ Violating these produces bugs that only show up on hardware or during OTA.
 
 **Mandatory.** Every change to firmware behaviour ships with `FW_VERSION_VALUE`
 in `Application/fw_header/fw_header.h` incremented by one minor
-(`0x0107` → `0x0108`). The version is the operator's only way to tell which
+(`0x0108` → `0x0109`). The version is the operator's only way to tell which
 build is running on a device in the field, so an un-bumped change is a defect.
 
 - Minor bump: any firmware-only change — fixes, features, register-map
@@ -158,8 +158,12 @@ Two ordering constraints, both load-bearing:
 - **Device name is 15 chars + NUL in a fixed 16-byte field.** The PDP IDENTIFY
   response is a fixed 38 bytes. This must stay identical across every module
   variant and ModbusTool, or discovery breaks between products.
-- Modbus TCP is single-client, newest-wins: a new connection drops the old one.
-  A hung client therefore cannot lock the device out.
+- Modbus TCP serves up to 4 clients from one task (round-robin, 2 ms
+  first-byte poll per idle slot). Only when all 4 slots are busy does a new
+  connection evict the longest-silent client; a silent client is dropped after
+  30 s, so hung clients cannot lock the device out. Register callbacks are
+  shared and sequential — last write wins. Needs
+  `MEMP_NUM_NETCONN/NETBUF/TCP_PCB = 8` in `lwipopts.h`.
 - `LED_STATE_FACTORY_RESET` is sticky until reboot and overrides all other
   states and modes.
 - A DQ comms-loss action latches; the latch clears only on the next explicit
