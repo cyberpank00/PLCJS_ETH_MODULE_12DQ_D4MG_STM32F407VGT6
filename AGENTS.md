@@ -77,7 +77,7 @@ Violating these produces bugs that only show up on hardware or during OTA.
 
 ### Single sources of truth
 - **Module identity** — `Application/fw_header/fw_header.h`:
-  `FW_PRODUCT_ID = 0x504C1202`, `FW_HW_REVISION = 0x0101`, `FW_VERSION_VALUE = 0x0108`.
+  `FW_PRODUCT_ID = 0x504C1202`, `FW_HW_REVISION = 0x0101`, `FW_VERSION_VALUE = 0x0109`.
   Bump `FW_VERSION_VALUE` here and nowhere else. `CMakeLists.txt` deliberately
   passes no identity defines.
 - **Firmware version over Modbus** — IR120/IR121 are derived from
@@ -90,7 +90,7 @@ Violating these produces bugs that only show up on hardware or during OTA.
 
 **Mandatory.** Every change to firmware behaviour ships with `FW_VERSION_VALUE`
 in `Application/fw_header/fw_header.h` incremented by one minor
-(`0x0108` → `0x0109`). The version is the operator's only way to tell which
+(`0x0109` → `0x010A`). The version is the operator's only way to tell which
 build is running on a device in the field, so an un-bumped change is a defect.
 
 - Minor bump: any firmware-only change — fixes, features, register-map
@@ -163,7 +163,27 @@ Two ordering constraints, both load-bearing:
   connection evict the longest-silent client; a silent client is dropped after
   30 s, so hung clients cannot lock the device out. Register callbacks are
   shared and sequential — last write wins. Needs
-  `MEMP_NUM_NETCONN/NETBUF/TCP_PCB = 8` in `lwipopts.h`.
+  `MEMP_NUM_NETCONN/NETBUF = 8`, `MEMP_NUM_TCP_PCB = 12` in `lwipopts.h`.
+- **Slots are closed with `tcp_abort` (RST), never `netconn_close` (FIN).** A
+  FIN to a vanished peer leaves the pcb in FIN_WAIT_1 retransmitting for
+  minutes; a handful of cable pulls exhausted the pcb pool and LwIP silently
+  dropped every new SYN (PDP still answered, Modbus looked dead). The abort
+  must be **synchronous under `LOCK_TCPIP_CORE()`** — with core locking the
+  netconn API runs in the caller, so a queued `tcpip_callback()` abort lands
+  after `netconn_delete()` freed and the next accept reused the netconn.
+- The server drops clients on `g_eth_link_stable` (debounced, follows the
+  netif), not on the instantaneous `g_eth_any_link_up` (LED only): the KSZ8863
+  port blips link-down for ~10 s after a cable is plugged back.
+- **`nmbs_server_poll()` returns `NMBS_ERROR_NONE` for "nothing arrived" too.**
+  A request is counted only when a response was produced (`txbuf_len != 0`).
+  Counting the idle return as a request kept `last_activity` fresh forever
+  (idle-drop never fired), lit POLLING for any silent client and fed the
+  comms-loss timer from a silent connection.
+- STAT_LED `POLLING` is driven by request recency only (one
+  `LED_POLLING_PERIOD_MS` window), no "client connected" condition.
+- `ethernet_link_thread` never calls `HAL_ETH_Stop_IT/Start_IT` after init:
+  the MAC↔KSZ8863 port-3 MII link is internal and always up. Only the netif
+  link flag is toggled.
 - `LED_STATE_FACTORY_RESET` is sticky until reboot and overrides all other
   states and modes.
 - A DQ comms-loss action latches; the latch clears only on the next explicit
