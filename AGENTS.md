@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Firmware for the PLCJS Ethernet 12DQ module (12 discrete outputs, STM32F407VGT6,
+Firmware for the PLCJS Ethernet 12DO module (12 discrete outputs, STM32F407VGT6,
 KSZ8863 switch, Modbus TCP). This file is the orientation map for agents; it
 records architecture, invariants and gotchas. User-facing documentation (register
 tables, wiring, electrical limits) lives in `README.md` / `README_EN.md`.
@@ -78,7 +78,7 @@ Violating these produces bugs that only show up on hardware or during OTA.
 
 ### Single sources of truth
 - **Module identity** — `Application/fw_header/fw_header.h`:
-  `FW_PRODUCT_ID = 0x504C1202`, `FW_HW_REVISION = 0x0101`, `FW_VERSION_VALUE = 0x010A`.
+  `FW_PRODUCT_ID = 0x504C1202`, `FW_HW_REVISION = 0x0101`, `FW_VERSION_VALUE = 0x010B`.
   Bump `FW_VERSION_VALUE` here and nowhere else. `CMakeLists.txt` deliberately
   passes no identity defines.
 - **Firmware version over Modbus** — IR120/IR121 are derived from
@@ -91,7 +91,7 @@ Violating these produces bugs that only show up on hardware or during OTA.
 
 **Mandatory.** Every change to firmware behaviour ships with `FW_VERSION_VALUE`
 in `Application/fw_header/fw_header.h` incremented by one minor
-(`0x010A` → `0x010B`). The version is the operator's only way to tell which
+(`0x010B` → `0x010C`). The version is the operator's only way to tell which
 build is running on a device in the field, so an un-bumped change is a defect.
 
 - Minor bump: any firmware-only change — fixes, features, register-map
@@ -279,7 +279,7 @@ Cross-repo contracts that must be changed in lockstep:
 - **Register map changes** — `modbus_app.h` here and `ModuleMaps.cpp` in
   ModbusTool, or the tool shows stale registers.
 
-Parity status, as of this writing: 12DI, 12DQ and 4RTD are aligned on the shared
+Parity status, as of this writing: 12DI, 12DO and 4RTD are aligned on the shared
 subsystems — `ksz8863.c/h`, `nanomodbus.c`, `discovery.c`, `net_id.c`,
 `button_module.c` and `modbus_tcp_server.c` are byte-identical across all three.
 4RTD was brought up to date (KSZ8863 cold-boot policy + recovery service, HR118

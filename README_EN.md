@@ -1,7 +1,7 @@
 # PLCJS_ETH_MODULE_12DQ_D4MG_STM32F407VGT6
 
 <p align="center">
-  <img src="DOC/images/foto_12do.png" alt="PLCJS Ethernet 12DQ appearance" width="500">
+  <img src="DOC/images/foto_12do.png" alt="PLCJS Ethernet 12DO appearance" width="500">
 </p>
 
 <p align="center"><strong>Appearance</strong></p>
@@ -18,7 +18,7 @@ Validated so far:
 
 - `CMake + Ninja` build (`arm-none-eabi-gcc`, links with no errors or warnings)
 
-Not validated yet (requires real 12DQ hardware and the Windows `starm-clang` toolchain):
+Not validated yet (requires real 12DO hardware and the Windows `starm-clang` toolchain):
 
 - output control and communication-loss behavior on the module
 - bootloader / OTA integration for the new `product_id`
@@ -320,7 +320,7 @@ When `0xB007` is written to `HR118`, the application:
 | DQ1..DQ12 control on hardware | not validated |
 | HOLD/ZERO/SAFE modes and timeouts on hardware | not validated |
 | OTA / bootloader for the new `product_id` | not validated |
-| Networking/service scenarios (inherited from 12DI) | not validated on 12DQ |
+| Networking/service scenarios (inherited from 12DI) | not validated on 12DO |
 
 ## Known limitations
 

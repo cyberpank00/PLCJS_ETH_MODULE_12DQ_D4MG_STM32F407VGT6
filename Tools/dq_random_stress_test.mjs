@@ -2,7 +2,7 @@
 // @ts-check
 /*
  * dq_random_stress_test.mjs - Random-pattern robustness/EMC stress test for the
- * PLCJS 12DO (12DQ) module driving inductive loads (e.g. 12x 24V relays).
+ * PLCJS 12DO module driving inductive loads (e.g. 12x 24V relays).
  *
  * Each cycle:
  *   1. pick a random 12-bit value (0..4095, i.e. 2^12 combinations)

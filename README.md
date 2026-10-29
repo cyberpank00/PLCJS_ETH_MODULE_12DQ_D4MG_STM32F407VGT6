@@ -1,7 +1,7 @@
-# PLCJS Ethernet модуль ввода/вывода 12DQ 24VDC
+# PLCJS Ethernet модуль ввода/вывода 12DO 24VDC
 
 <p align="center">
-  <img src="DOC/images/foto_12do.png" alt="Внешний вид PLCJS Ethernet 12DQ" width="500">
+  <img src="DOC/images/foto_12do.png" alt="Внешний вид PLCJS Ethernet 12DO" width="500">
 </p>
 
 <p align="center"><strong>Внешний вид</strong></p>
@@ -58,7 +58,7 @@
 | Module ID в Modbus | `0x12D0` |
 | Product ID образа | `0x504C1202` |
 | HW revision образа | `0x0101` (1.1) |
-| FW version образа | `0x010A` (1.10) |
+| FW version образа | `0x010B` (1.11) |
 | Версия в Modbus IR120/IR121 | 1.7 |
 
 Электрические пределы клеммных выходов — допустимое напряжение, ток нагрузки, защита и схема подключения — должны определяться по схеме платы и документации на аппаратную ревизию. GPIO-уровни MCU в таблице ниже не являются допустимыми параметрами внешней нагрузки.
@@ -362,7 +362,7 @@ cmake --build --preset Release
 |---|---:|
 | `PRODUCT_ID` | `0x504C1202` |
 | `HW_REVISION` | `0x0101` |
-| `FW_VERSION` | `0x010A` |
+| `FW_VERSION` | `0x010B` |
 
 Заголовок `fw_header_t` расположен по смещению `0x200` от начала application image и содержит magic `PLCJ`, product ID, аппаратную ревизию и версию прошивки. Размер образа и CRC32 передаются отдельно в метаданных OTA и не входят в этот заголовок.
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * di_do_toggle.mjs — toggle flip-flop: every press of the button on 12DI DI0
- * (rising edge) flips 12DQ DO0. Divide-by-two / push-on-push-off switch.
+ * (rising edge) flips 12DO DO0. Divide-by-two / push-on-push-off switch.
  *
  * Reads DI0 with FC02 (discrete input 0, already debounced by the module's
  * input filter, HR100), writes DO0 with FC05 (coil 0). Two independent TCP

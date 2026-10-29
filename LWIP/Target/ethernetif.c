@@ -489,7 +489,7 @@ err_t ethernetif_init(struct netif *netif)
 
 #if LWIP_NETIF_HOSTNAME
   /* Initialize interface hostname */
-  netif->hostname = "PLCJS-ETH-12DQ";
+  netif->hostname = "PLCJS-ETH-12DO";
 #endif /* LWIP_NETIF_HOSTNAME */
 
   /*
