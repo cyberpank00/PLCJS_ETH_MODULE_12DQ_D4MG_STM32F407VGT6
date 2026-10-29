@@ -318,6 +318,8 @@ static uint16_t read_input(uint16_t address)
     case MB_IR_UPTIME_HI:       return (uint16_t)(((HAL_GetTick() / 1000u) >> 16u) & 0xFFFFu);
     case MB_IR_DQ_MASK:         return dq_module_get_mask();
     case MB_IR_MODULE_ID:       return MODULE_ID_12D0;
+    case MB_IR_SAVE_COUNT:      return settings_save_count();
+    case MB_IR_SAVE_RESULT:     return settings_save_result();
     default:                    return 0u;
     }
 }
@@ -331,7 +333,8 @@ static nmbs_error cb_read_input_registers(uint16_t address, uint16_t quantity,
     /* Allow read of the DQ echo block (0..11) and the metadata block (120..125). */
     for (uint16_t i = 0; i < quantity; i++) {
         const uint16_t a = (uint16_t)(address + i);
-        if (a < MB_DQ_COUNT || (a >= MB_IR_FW_VER_MAJOR && a <= MB_IR_MODULE_ID)) {
+        if (a < MB_DQ_COUNT || (a >= MB_IR_FW_VER_MAJOR && a <= MB_IR_MODULE_ID) ||
+            a == MB_IR_SAVE_COUNT || a == MB_IR_SAVE_RESULT) {
             registers_out[i] = read_input(a);
         } else {
             return NMBS_EXCEPTION_ILLEGAL_DATA_ADDRESS;

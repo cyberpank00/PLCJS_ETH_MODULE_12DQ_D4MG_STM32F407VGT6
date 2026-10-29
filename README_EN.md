@@ -175,6 +175,8 @@ The output control/configuration block occupies holding registers `50..98` so it
 | `123` | uptime seconds, high word |
 | `124` | 12-bit output state mask |
 | `125` | module ID = `0x12D0` (12x DO) |
+| `129` | successful settings saves since boot (Flash written and verified by read-back) |
+| `130` | last save result: 0 none, 1 OK, 2 failed |
 
 ### Holding Registers, FC03 / FC06 / FC16
 

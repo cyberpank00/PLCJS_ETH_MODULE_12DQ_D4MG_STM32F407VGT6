@@ -31,6 +31,7 @@
 #include "lwip/dhcp.h"
 #include "settings.h"
 #include "net_id.h"
+#include "addr_probe.h"
 /* USER CODE END Include for User BSP */
 #include <string.h>
 #include "cmsis_os.h"
@@ -438,6 +439,7 @@ void ethernetif_input(void* argument)
         if (p != NULL)
         {
           ethernetif_rx_frame_cnt++;
+          addr_probe_input(p);
           if (netif->input( p, netif) != ERR_OK )
           {
             pbuf_free(p);
